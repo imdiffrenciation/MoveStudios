@@ -2,132 +2,141 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import PinCard from '@/components/PinCard';
-import CreatePinModal from '@/components/CreatePinModal';
-import { Plus, Search, User, Settings } from 'lucide-react';
+import { Sparkles, Search, User, Settings, TrendingUp } from 'lucide-react';
+import MasonryGrid from '@/components/MasonryGrid';
+import TrendingTags from '@/components/TrendingTags';
+import DockerNav from '@/components/DockerNav';
+import UploadModal from '@/components/UploadModal';
+import type { MediaItem } from '@/types';
 
-interface Pin {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  creatorName: string;
-  creatorAvatar: string;
-  likes: number;
-  saves: number;
-}
-
-const SAMPLE_PINS: Pin[] = [
+const SAMPLE_MEDIA: MediaItem[] = [
   {
     id: '1',
+    type: 'image',
+    url: 'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?w=400',
     title: 'Modern Architecture',
-    description: 'Beautiful contemporary building design',
-    imageUrl: 'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?w=400',
-    creatorName: 'John Doe',
-    creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
+    creator: 'John Doe',
+    tags: ['architecture', 'modern', 'design'],
     likes: 234,
-    saves: 89
+    taps: 456
   },
   {
     id: '2',
+    type: 'image',
+    url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
     title: 'Nature Photography',
-    description: 'Stunning mountain landscape',
-    imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
-    creatorName: 'Jane Smith',
-    creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane',
+    creator: 'Jane Smith',
+    tags: ['nature', 'photography', 'landscape'],
     likes: 456,
-    saves: 123
+    taps: 789
   },
   {
     id: '3',
+    type: 'image',
+    url: 'https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=400',
     title: 'Digital Art',
-    description: 'Abstract digital illustration',
-    imageUrl: 'https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=400',
-    creatorName: 'Mike Johnson',
-    creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
+    creator: 'Mike Johnson',
+    tags: ['digitalart', 'abstract', 'creative'],
     likes: 789,
-    saves: 234
+    taps: 1234
   },
   {
     id: '4',
+    type: 'image',
+    url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400',
     title: 'Interior Design',
-    description: 'Minimalist living room setup',
-    imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400',
-    creatorName: 'Sarah Lee',
-    creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
+    creator: 'Sarah Lee',
+    tags: ['design', 'interior', 'minimalist'],
     likes: 567,
-    saves: 178
+    taps: 892
   },
   {
     id: '5',
+    type: 'image',
+    url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
     title: 'Food Photography',
-    description: 'Gourmet dish presentation',
-    imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
-    creatorName: 'Alex Chen',
-    creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
+    creator: 'Alex Chen',
+    tags: ['food', 'photography', 'culinary'],
     likes: 345,
-    saves: 92
+    taps: 678
   },
   {
     id: '6',
+    type: 'image',
+    url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400',
     title: 'Fashion Editorial',
-    description: 'Street style photography',
-    imageUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400',
-    creatorName: 'Emma Wilson',
-    creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
+    creator: 'Emma Wilson',
+    tags: ['fashion', 'editorial', 'style'],
     likes: 891,
-    saves: 267
+    taps: 1456
   }
 ];
 
 const Index = () => {
   const navigate = useNavigate();
-  const [pins, setPins] = useState<Pin[]>(SAMPLE_PINS);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>(SAMPLE_MEDIA);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string | undefined>();
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
 
-  const handleCreatePin = (newPin: { title: string; description: string; imageUrl: string }) => {
-    const pin: Pin = {
-      id: Date.now().toString(),
-      ...newPin,
-      creatorName: 'You',
-      creatorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User',
-      likes: 0,
-      saves: 0
-    };
-    setPins([pin, ...pins]);
-    setIsCreateModalOpen(false);
+  const handleUpload = (uploadData: any) => {
+    setMediaItems([uploadData, ...mediaItems]);
+    setIsUploadModalOpen(false);
   };
 
+  const handleMediaClick = (item: MediaItem) => {
+    console.log('Media clicked:', item);
+  };
+
+  const handleTagClick = (tag: string) => {
+    setSelectedTag(selectedTag === tag ? undefined : tag);
+  };
+
+  const filteredMedia = mediaItems.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         item.creator.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTag = !selectedTag || item.tags.includes(selectedTag);
+    return matchesSearch && matchesTag;
+  });
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border">
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            <h1 className="text-2xl font-bold text-primary">Movement</h1>
+            <button 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <span className="text-lg font-bold text-foreground">Movement</span>
+            </button>
             
             <div className="flex-1 max-w-2xl">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search pins..."
+                  placeholder="Search content..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-secondary border-none"
+                  className="pl-10 bg-secondary border-border"
                 />
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <Button
-                onClick={() => setIsCreateModalOpen(true)}
-                size="sm"
-                className="gap-2"
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSidebar(!showSidebar)}
+                className="md:hidden"
               >
-                <Plus className="w-4 h-4" />
-                Create
+                <TrendingUp className="w-5 h-5" />
               </Button>
               <Button
                 variant="ghost"
@@ -149,26 +158,50 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
-        <div className="masonry-grid">
-          {pins
-            .filter(pin => 
-              pin.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              pin.description.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            .map(pin => (
-              <div key={pin.id} className="masonry-item">
-                <PinCard pin={pin} />
-              </div>
-            ))}
-        </div>
-      </main>
+      <div className="container mx-auto px-4 py-6 flex gap-6">
+        {/* Sidebar - Trending Tags */}
+        <aside className={`
+          ${showSidebar ? 'block' : 'hidden'} 
+          md:block w-64 flex-shrink-0
+        `}>
+          <div className="sticky top-24">
+            <TrendingTags 
+              onTagSelect={handleTagClick}
+              selectedTag={selectedTag}
+            />
+          </div>
+        </aside>
 
-      {/* Create Pin Modal */}
-      <CreatePinModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreatePin}
+        {/* Feed */}
+        <main className="flex-1 min-w-0">
+          {selectedTag && (
+            <div className="mb-4 flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Filtering by:</span>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setSelectedTag(undefined)}
+              >
+                #{selectedTag} ×
+              </Button>
+            </div>
+          )}
+          <MasonryGrid 
+            items={filteredMedia}
+            onMediaClick={handleMediaClick}
+            onTagClick={handleTagClick}
+          />
+        </main>
+      </div>
+
+      {/* Bottom Navigation */}
+      <DockerNav onUploadClick={() => setIsUploadModalOpen(true)} />
+
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUpload={handleUpload}
       />
     </div>
   );
