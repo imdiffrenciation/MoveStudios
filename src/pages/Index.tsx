@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Search, User, Settings, TrendingUp } from 'lucide-react';
+import { Sparkles, Search, User, Settings, TrendingUp, Menu } from 'lucide-react';
 import MasonryGrid from '@/components/MasonryGrid';
 import TrendingTags from '@/components/TrendingTags';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
+import MediaModal from '@/components/MediaModal';
 import type { MediaItem } from '@/types';
 
 const SAMPLE_MEDIA: MediaItem[] = [
@@ -79,6 +80,7 @@ const Index = () => {
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
 
   const handleUpload = (uploadData: any) => {
     setMediaItems([uploadData, ...mediaItems]);
@@ -86,7 +88,7 @@ const Index = () => {
   };
 
   const handleMediaClick = (item: MediaItem) => {
-    console.log('Media clicked:', item);
+    setSelectedMedia(item);
   };
 
   const handleTagClick = (tag: string) => {
@@ -134,9 +136,9 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowSidebar(!showSidebar)}
-                className="md:hidden"
+                title="Toggle sidebar"
               >
-                <TrendingUp className="w-5 h-5" />
+                <Menu className="w-5 h-5" />
               </Button>
               <Button
                 variant="ghost"
@@ -202,6 +204,13 @@ const Index = () => {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleUpload}
+      />
+
+      {/* Media Detail Modal */}
+      <MediaModal
+        media={selectedMedia}
+        isOpen={!!selectedMedia}
+        onClose={() => setSelectedMedia(null)}
       />
     </div>
   );
