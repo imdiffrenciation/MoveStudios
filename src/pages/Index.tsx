@@ -108,15 +108,25 @@ const Index = () => {
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            <button 
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <span className="text-lg font-bold text-foreground">Movement</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSidebar(!showSidebar)}
+                title="Toggle trending tags"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+              <button 
+                onClick={() => navigate('/')}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <span className="text-lg font-bold text-foreground">Movement</span>
+              </button>
+            </div>
             
             <div className="flex-1 max-w-2xl">
               <div className="relative">
@@ -132,14 +142,6 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSidebar(!showSidebar)}
-                title="Toggle sidebar"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
               <Button
                 variant="ghost"
                 size="icon"
