@@ -164,10 +164,9 @@ const Index = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6 flex gap-6">
         {/* Sidebar - Trending Tags */}
-        <aside className={`
-          ${showSidebar ? 'block' : 'hidden'} 
-          md:block w-64 flex-shrink-0
-        `}>
+        {showSidebar && (
+          <aside className="w-64 flex-shrink-0">
+
           <div className="sticky top-24">
             <TrendingTags 
               onTagSelect={handleTagClick}
@@ -175,6 +174,7 @@ const Index = () => {
             />
           </div>
         </aside>
+        )}
 
         {/* Feed */}
         <main className="flex-1 min-w-0">
