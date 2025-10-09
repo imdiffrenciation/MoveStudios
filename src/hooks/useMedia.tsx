@@ -8,7 +8,7 @@ export const useMedia = () => {
 
   const fetchMedia = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('media')
         .select(`
           *,
@@ -44,7 +44,7 @@ export const useMedia = () => {
     fetchMedia();
 
     // Set up realtime subscription
-    const channel = supabase
+    const channel = (supabase as any)
       .channel('media-changes')
       .on(
         'postgres_changes',

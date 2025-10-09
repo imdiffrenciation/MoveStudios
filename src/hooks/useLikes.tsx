@@ -18,7 +18,7 @@ export const useLikes = (mediaId: string) => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('likes')
         .select('id')
         .eq('user_id', user.id)
@@ -41,7 +41,7 @@ export const useLikes = (mediaId: string) => {
     setLoading(true);
     try {
       if (isLiked) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('likes')
           .delete()
           .eq('user_id', user.id)
@@ -50,7 +50,7 @@ export const useLikes = (mediaId: string) => {
         if (error) throw error;
         setIsLiked(false);
       } else {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('likes')
           .insert({ user_id: user.id, media_id: mediaId });
 
