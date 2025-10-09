@@ -1,43 +1,72 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Settings, Grid, Heart, Bookmark, Users } from 'lucide-react';
+import { Settings, Grid, Heart, Bookmark } from 'lucide-react';
 import MasonryGrid from '@/components/MasonryGrid';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import type { MediaItem } from '@/types';
-
-const MOCK_USER_MEDIA: MediaItem[] = [
-  {
-    id: 'u1',
-    type: 'image',
-    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400',
-    title: 'My Latest Creation',
-    creator: 'You',
-    tags: ['art', 'design', 'creative'],
-    likes: 156,
-    taps: 423
-  },
-  {
-    id: 'u2',
-    type: 'image',
-    url: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=400',
-    title: 'Abstract Exploration',
-    creator: 'You',
-    tags: ['abstract', 'digital'],
-    likes: 234,
-    taps: 678
-  },
-];
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('created');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [userMedia, setUserMedia] = useState<MediaItem[]>(MOCK_USER_MEDIA);
+  const [userMedia, setUserMedia] = useState<MediaItem[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+      fetchUserMedia();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    const { data } = await (supabase as any)
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (data) {
+      setProfile(data);
+    }
+  };
+
+  const fetchUserMedia = async () => {
+    if (!user) return;
+
+    const { data } = await (supabase as any)
+      .from('media')
+      .select(`
+        *,
+        profiles!media_user_id_fkey(username, avatar_url)
+      `)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      const mapped = data.map((item: any) => ({
+        id: item.id,
+        type: item.type,
+        url: item.url,
+        title: item.title,
+        creator: item.profiles?.username || 'Anonymous',
+        tags: item.tags || [],
+        likes: item.likes_count || 0,
+        taps: item.views_count || 0,
+      }));
+      setUserMedia(mapped);
+    }
+  };
 
   const handleUpload = (uploadData: any) => {
     setUserMedia([uploadData, ...userMedia]);
@@ -55,15 +84,15 @@ const Profile = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-start gap-6">
             <Avatar className="w-24 h-24 ring-4 ring-primary">
-              <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=User" />
-              <AvatarFallback>YU</AvatarFallback>
+              <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`} />
+              <AvatarFallback>{profile?.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
 
             <div className="flex-1">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Your Username</h1>
-                  <p className="text-muted-foreground">@yourusername</p>
+                  <h1 className="text-2xl font-bold text-foreground">{profile?.username || 'Loading...'}</h1>
+                  <p className="text-muted-foreground">@{profile?.username || 'user'}</p>
                 </div>
                 <Button
                   variant="outline"
@@ -92,7 +121,7 @@ const Profile = () => {
               </div>
 
               <p className="text-foreground">
-                Creative enthusiast sharing my journey through digital art and photography 🎨
+                {profile?.bio || 'No bio yet'}
               </p>
             </div>
           </div>
