@@ -9,12 +9,14 @@ import MasonryGrid from '@/components/MasonryGrid';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import { useAuth } from '@/hooks/useAuth';
+import { useFollows } from '@/hooks/useFollows';
 import { supabase } from '@/integrations/supabase/client';
 import type { MediaItem } from '@/types';
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { followersCount, followingCount } = useFollows(user?.id);
   const [activeTab, setActiveTab] = useState('created');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [userMedia, setUserMedia] = useState<MediaItem[]>([]);
@@ -111,11 +113,11 @@ const Profile = () => {
                   <div className="text-sm text-muted-foreground">Posts</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground">234</div>
+                  <div className="text-2xl font-bold text-foreground">{followersCount}</div>
                   <div className="text-sm text-muted-foreground">Followers</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground">189</div>
+                  <div className="text-2xl font-bold text-foreground">{followingCount}</div>
                   <div className="text-sm text-muted-foreground">Following</div>
                 </div>
               </div>
