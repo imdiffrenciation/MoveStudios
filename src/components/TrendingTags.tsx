@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import { TrendingUp, Zap, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { TrendingTag } from '@/types';
+import { useTrendingTags } from '@/hooks/useTrendingTags';
 
 interface TrendingTagsProps {
   onTagSelect: (tag: string) => void;
@@ -10,20 +9,8 @@ interface TrendingTagsProps {
   cleanDesign?: boolean;
 }
 
-// Mock trending tags data
-const MOCK_TRENDING_TAGS: TrendingTag[] = [
-  { name: 'digitalart', count: 1250 },
-  { name: 'photography', count: 980 },
-  { name: 'animation', count: 756 },
-  { name: '3dmodeling', count: 642 },
-  { name: 'illustration', count: 534 },
-  { name: 'design', count: 498 },
-  { name: 'creative', count: 423 },
-  { name: 'artwork', count: 387 },
-];
-
 const TrendingTags = ({ onTagSelect, selectedTag, cleanDesign = false }: TrendingTagsProps) => {
-  const [trendingTags] = useState<TrendingTag[]>(MOCK_TRENDING_TAGS);
+  const { trendingTags, loading } = useTrendingTags();
 
   const getTagIcon = (index: number) => {
     if (index === 0) return <Flame className="w-3 h-3" />;
@@ -36,6 +23,14 @@ const TrendingTags = ({ onTagSelect, selectedTag, cleanDesign = false }: Trendin
     if (index < 3) return 'text-orange-400';
     return 'text-green-400';
   };
+
+  if (loading) {
+    return <div className="text-sm text-muted-foreground">Loading tags...</div>;
+  }
+
+  if (trendingTags.length === 0) {
+    return <div className="text-sm text-muted-foreground">No tags yet</div>;
+  }
 
   if (cleanDesign) {
     return (
