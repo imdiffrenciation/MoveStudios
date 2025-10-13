@@ -77,8 +77,7 @@ const Settings = () => {
     }
   };
 
-  const handleUpload = (uploadData: any) => {
-    console.log('Upload:', uploadData);
+  const handleUpload = () => {
     setIsUploadModalOpen(false);
   };
 

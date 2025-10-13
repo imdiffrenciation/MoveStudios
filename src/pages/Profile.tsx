@@ -70,8 +70,8 @@ const Profile = () => {
     }
   };
 
-  const handleUpload = (uploadData: any) => {
-    setUserMedia([uploadData, ...userMedia]);
+  const handleUpload = () => {
+    fetchUserMedia(); // Refresh the media list after upload
     setIsUploadModalOpen(false);
   };
 

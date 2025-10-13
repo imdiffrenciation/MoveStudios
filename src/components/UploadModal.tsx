@@ -12,14 +12,19 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpload: (data: any) => void;
+  onUpload: () => void;
 }
 
 const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>('');
   const [title, setTitle] = useState('');
@@ -70,28 +75,57 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !title.trim()) return;
+    if (!file || !title.trim() || !user) return;
 
     setIsUploading(true);
     
-    setTimeout(() => {
-      const uploadData = {
-        id: Date.now().toString(),
-        type: file.type.startsWith('video/') ? 'video' as const : 'image' as const,
-        url: preview,
-        title: title.trim(),
-        creator: 'You',
-        tags,
-        description: description.trim(),
-        likes: 0,
-        taps: 0,
-        timestamp: new Date().toISOString()
-      };
+    try {
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('media')
+        .upload(fileName, file);
 
-      onUpload(uploadData);
-      setIsUploading(false);
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('media')
+        .getPublicUrl(fileName);
+
+      // Insert media record
+      const { error: insertError } = await supabase
+        .from('media')
+        .insert({
+          user_id: user.id,
+          type: file.type.startsWith('video/') ? 'video' : 'image',
+          url: publicUrl,
+          title: title.trim(),
+          description: description.trim() || null,
+          tags: tags.length > 0 ? tags : null,
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: 'Upload successful!',
+        description: 'Your content has been shared with the community.',
+      });
+
+      onUpload();
       handleClose();
-    }, 1500);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'There was an error uploading your content. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleClose = () => {
