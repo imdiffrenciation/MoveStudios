@@ -8,6 +8,7 @@ import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface MediaModalProps {
   media: MediaItem | null;
@@ -53,19 +54,34 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
   }, [user, creatorUserId, isFollowing]);
 
   const handleFollowToggle = async () => {
-    if (!user || !creatorUserId || user.id === creatorUserId) return;
-    
+    if (!user || !creatorUserId || user.id === creatorUserId) {
+      console.log('Follow toggle blocked', { hasUser: !!user, creatorUserId, sameUser: user?.id === creatorUserId });
+      return;
+    }
+
     setFollowLoading(true);
     try {
+      console.log('Follow toggle start', { isFollowingCreator, creatorUserId, currentUserId: user.id });
       if (isFollowingCreator) {
-        await unfollowUser(creatorUserId, user.id);
+        const { error } = await (supabase as any)
+          .from('follows')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('following_id', creatorUserId);
+        if (error) throw error;
         setIsFollowingCreator(false);
+        toast({ title: 'Unfollowed', description: 'You have unfollowed this creator.' });
       } else {
-        await followUser(creatorUserId, user.id);
+        const { error } = await (supabase as any)
+          .from('follows')
+          .insert({ follower_id: user.id, following_id: creatorUserId });
+        if (error) throw error;
         setIsFollowingCreator(true);
+        toast({ title: 'Followed', description: 'You are now following this creator.' });
       }
     } catch (error) {
       console.error('Follow toggle error:', error);
+      toast({ title: 'Action failed', description: 'Please try again.', variant: 'destructive' as any });
     } finally {
       setFollowLoading(false);
     }
@@ -139,7 +155,10 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
                 <Button
                   variant={isLiked ? "default" : "outline"}
                   size="sm"
-                  onClick={toggleLike}
+                  onClick={async () => {
+                    console.log('Like toggle clicked', { mediaId: media.id });
+                    await toggleLike();
+                  }}
                   disabled={loading}
                   className="gap-2"
                 >

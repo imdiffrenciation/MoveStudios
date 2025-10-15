@@ -20,7 +20,19 @@ export const useFollows = (userId: string | undefined) => {
           event: '*',
           schema: 'public',
           table: 'follows',
-          filter: `follower_id=eq.${userId},following_id=eq.${userId}`,
+          filter: `follower_id=eq.${userId}`,
+        },
+        () => {
+          fetchCounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'follows',
+          filter: `following_id=eq.${userId}`,
         },
         () => {
           fetchCounts();
@@ -54,24 +66,24 @@ export const useFollows = (userId: string | undefined) => {
   };
 
   const isFollowing = async (targetUserId: string, currentUserId: string) => {
-    const { data } = await (supabase as any)
+    const { data, error } = await (supabase as any)
       .from('follows')
-      .select('*')
+      .select('id')
       .eq('follower_id', currentUserId)
       .eq('following_id', targetUserId)
-      .single();
-    
+      .maybeSingle();
+    if (error && error.code !== 'PGRST116') console.warn('isFollowing error', error);
     return !!data;
   };
 
   const followUser = async (targetUserId: string, currentUserId: string) => {
-    await (supabase as any)
+    return (supabase as any)
       .from('follows')
       .insert({ follower_id: currentUserId, following_id: targetUserId });
   };
 
   const unfollowUser = async (targetUserId: string, currentUserId: string) => {
-    await (supabase as any)
+    return (supabase as any)
       .from('follows')
       .delete()
       .eq('follower_id', currentUserId)
