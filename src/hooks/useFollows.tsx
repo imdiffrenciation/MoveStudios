@@ -53,6 +53,17 @@ export const useFollows = (userId: string | undefined) => {
     setLoading(false);
   };
 
+  const isFollowing = async (targetUserId: string, currentUserId: string) => {
+    const { data } = await (supabase as any)
+      .from('follows')
+      .select('*')
+      .eq('follower_id', currentUserId)
+      .eq('following_id', targetUserId)
+      .single();
+    
+    return !!data;
+  };
+
   const followUser = async (targetUserId: string, currentUserId: string) => {
     await (supabase as any)
       .from('follows')
@@ -73,5 +84,6 @@ export const useFollows = (userId: string | undefined) => {
     loading,
     followUser,
     unfollowUser,
+    isFollowing,
   };
 };

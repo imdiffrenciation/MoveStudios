@@ -4,6 +4,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageCircle, Share2, X } from 'lucide-react';
 import type { MediaItem } from '@/types';
 import { useLikes } from '@/hooks/useLikes';
+import { useFollows } from '@/hooks/useFollows';
+import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MediaModalProps {
   media: MediaItem | null;
@@ -12,7 +16,60 @@ interface MediaModalProps {
 }
 
 const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
+  const { user } = useAuth();
   const { isLiked, toggleLike, loading } = useLikes(media?.id || '');
+  const { followUser, unfollowUser, isFollowing } = useFollows(user?.id);
+  const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
+  const [isFollowingCreator, setIsFollowingCreator] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchCreatorId = async () => {
+      if (!media?.id) return;
+      
+      const { data } = await (supabase as any)
+        .from('media')
+        .select('user_id')
+        .eq('id', media.id)
+        .single();
+      
+      if (data) {
+        setCreatorUserId(data.user_id);
+      }
+    };
+    
+    fetchCreatorId();
+  }, [media?.id]);
+
+  useEffect(() => {
+    const checkFollowing = async () => {
+      if (!user || !creatorUserId || user.id === creatorUserId) return;
+      
+      const following = await isFollowing(creatorUserId, user.id);
+      setIsFollowingCreator(following);
+    };
+    
+    checkFollowing();
+  }, [user, creatorUserId, isFollowing]);
+
+  const handleFollowToggle = async () => {
+    if (!user || !creatorUserId || user.id === creatorUserId) return;
+    
+    setFollowLoading(true);
+    try {
+      if (isFollowingCreator) {
+        await unfollowUser(creatorUserId, user.id);
+        setIsFollowingCreator(false);
+      } else {
+        await followUser(creatorUserId, user.id);
+        setIsFollowingCreator(true);
+      }
+    } catch (error) {
+      console.error('Follow toggle error:', error);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   if (!media) return null;
 
@@ -60,9 +117,16 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
                   <h3 className="font-semibold text-foreground">{media.creator}</h3>
                   <p className="text-sm text-muted-foreground">Creator</p>
                 </div>
-                <Button variant="default" size="sm">
-                  Follow
-                </Button>
+                {user && creatorUserId && user.id !== creatorUserId && (
+                  <Button 
+                    variant={isFollowingCreator ? "outline" : "default"} 
+                    size="sm"
+                    onClick={handleFollowToggle}
+                    disabled={followLoading}
+                  >
+                    {isFollowingCreator ? 'Unfollow' : 'Follow'}
+                  </Button>
+                )}
               </div>
             </div>
 
