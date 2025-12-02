@@ -9,6 +9,7 @@ import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
 import { useComments } from '@/hooks/useComments';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -24,6 +25,7 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
   const { followUser, unfollowUser, isFollowing } = useFollows(user?.id);
   const { comments, loading: commentsLoading, addComment } = useComments(media?.id || null);
   const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [isFollowingCreator, setIsFollowingCreator] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -134,7 +136,17 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">{media.creator}</h3>
+                  <h3 
+                    className="font-semibold text-foreground hover:underline cursor-pointer"
+                    onClick={() => {
+                      if (creatorUserId && creatorUserId !== user?.id) {
+                        navigate(`/profile/${creatorUserId}`);
+                        onClose();
+                      }
+                    }}
+                  >
+                    {media.creator}
+                  </h3>
                   <p className="text-sm text-muted-foreground">Creator</p>
                 </div>
                 {user && creatorUserId && user.id !== creatorUserId && (

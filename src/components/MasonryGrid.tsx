@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Heart, Eye, Bookmark, Play } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
 import type { MediaItem } from '@/types';
 
 interface MasonryGridProps {
@@ -22,6 +23,18 @@ const MediaCard = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [viewCounted, setViewCounted] = useState(false);
+
+  const handleMouseEnter = async () => {
+    setIsHovered(true);
+    if (!viewCounted) {
+      setViewCounted(true);
+      await (supabase as any)
+        .from('media')
+        .update({ views_count: (item.taps || 0) + 1 })
+        .eq('id', item.id);
+    }
+  };
 
   const handleTagClick = (e: React.MouseEvent, tag: string) => {
     e.stopPropagation();
@@ -31,7 +44,7 @@ const MediaCard = ({
   return (
     <Card 
       className="group overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-primary/20 cursor-pointer border-border"
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onMediaClick(item)}
     >
