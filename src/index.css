@@ -8,7 +8,49 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Movement Studios Pinterest Theme - HSL Colors */
+    /* Light Mode - Clean and Modern */
+    --background: 0 0% 100%; /* White */
+    --foreground: 0 0% 5%; /* Almost black */
+
+    --card: 0 0% 98%; /* Very light gray */
+    --card-foreground: 0 0% 5%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+
+    --primary: 51 100% 50%; /* Movement Yellow */
+    --primary-foreground: 0 0% 5%; /* Dark text on yellow */
+
+    --secondary: 0 0% 95%; /* Light gray */
+    --secondary-foreground: 0 0% 5%;
+
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 51 100% 50%; /* Yellow accent */
+    --accent-foreground: 0 0% 5%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 51 100% 50%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 5%;
+    --sidebar-primary: 51 100% 50%;
+    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 0 0% 5%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 51 100% 50%;
+  }
+
+  .dark {
+    /* Dark Mode - Movement Studios */
     --background: 0 0% 0%; /* Black */
     --foreground: 0 0% 100%; /* White */
 
@@ -30,53 +72,13 @@ All colors MUST be HSL.
     --accent: 51 100% 50%; /* Yellow accent */
     --accent-foreground: 0 0% 0%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 51 100% 50%;
-
-    --radius: 0.75rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    /* Same as light mode - Movement Studios always dark */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 51 100% 50%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 51 100% 50%;
-    --accent-foreground: 0 0% 0%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
+
     --border: 0 0% 18%;
     --input: 0 0% 18%;
     --ring: 51 100% 50%;
+
     --sidebar-background: 0 0% 6%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 51 100% 50%;

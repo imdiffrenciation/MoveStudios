@@ -8,6 +8,7 @@ import TrendingTags from '@/components/TrendingTags';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import MediaModal from '@/components/MediaModal';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useMedia } from '@/hooks/useMedia';
 import type { MediaItem } from '@/types';
 
@@ -79,6 +80,7 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <Button
                 variant="ghost"
                 size="icon"
@@ -99,11 +101,10 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-6 flex gap-6">
-        {/* Sidebar - Trending Tags */}
+      <div className="container mx-auto px-3 md:px-4 py-4 md:py-6 flex gap-4 md:gap-6">
+        {/* Sidebar - Trending Tags - Hidden on mobile */}
         {showSidebar && (
-          <aside className="w-64 flex-shrink-0">
-
+          <aside className="hidden lg:block w-64 flex-shrink-0">
           <div className="sticky top-24">
             <TrendingTags 
               onTagSelect={handleTagClick}
