@@ -1,11 +1,13 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Share2, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Heart, MessageCircle, Share2, X, DollarSign } from 'lucide-react';
 import type { MediaItem } from '@/types';
 import { useLikes } from '@/hooks/useLikes';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
+import { useComments } from '@/hooks/useComments';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -20,9 +22,11 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
   const { user } = useAuth();
   const { isLiked, toggleLike, loading } = useLikes(media?.id || '');
   const { followUser, unfollowUser, isFollowing } = useFollows(user?.id);
+  const { comments, loading: commentsLoading, addComment } = useComments(media?.id || null);
   const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
   const [isFollowingCreator, setIsFollowingCreator] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [commentText, setCommentText] = useState('');
 
   useEffect(() => {
     const fetchCreatorId = async () => {
@@ -167,7 +171,11 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
                 </Button>
                 <Button variant="outline" size="sm" className="gap-2">
                   <MessageCircle className="w-4 h-4" />
-                  {media.taps}
+                  {comments.length}
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Tip
                 </Button>
                 <Button variant="outline" size="sm">
                   <Share2 className="w-4 h-4" />
@@ -190,10 +198,76 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
 
               {/* Comments Section */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-foreground">Comments</h3>
-                <p className="text-sm text-muted-foreground">
-                  No comments yet. Be the first to comment!
-                </p>
+                <h3 className="font-semibold text-foreground">Comments ({comments.length})</h3>
+                
+                {/* Comment Input */}
+                {user && (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a comment..."
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      onKeyPress={async (e) => {
+                        if (e.key === 'Enter' && commentText.trim()) {
+                          try {
+                            await addComment(commentText, user.id);
+                            setCommentText('');
+                            toast({ title: 'Comment added', description: 'Your comment has been posted.' });
+                          } catch (error) {
+                            toast({ title: 'Failed to post comment', variant: 'destructive' as any });
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        if (!commentText.trim()) return;
+                        try {
+                          await addComment(commentText, user.id);
+                          setCommentText('');
+                          toast({ title: 'Comment added', description: 'Your comment has been posted.' });
+                        } catch (error) {
+                          toast({ title: 'Failed to post comment', variant: 'destructive' as any });
+                        }
+                      }}
+                      disabled={commentsLoading || !commentText.trim()}
+                    >
+                      Post
+                    </Button>
+                  </div>
+                )}
+
+                {/* Comments List */}
+                <div className="space-y-4">
+                  {comments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No comments yet. Be the first to comment!
+                    </p>
+                  ) : (
+                    comments.map((comment) => (
+                      <div key={comment.id} className="flex gap-3">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={comment.profiles?.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {comment.profiles?.username?.charAt(0).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-foreground">
+                              {comment.profiles?.username || 'Unknown'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(comment.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground mt-1">{comment.content}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
