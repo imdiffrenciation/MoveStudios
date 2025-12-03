@@ -51,8 +51,8 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
+      <Card className="w-full max-w-sm sm:max-w-md">
         <CardHeader className="space-y-1 flex flex-col items-center">
           <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center mb-2">
             <Sparkles className="w-6 h-6 text-primary-foreground" />

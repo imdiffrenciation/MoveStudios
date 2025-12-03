@@ -154,7 +154,7 @@ const Profile = () => {
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
           {!isOwnProfile && (
             <Button
               variant="ghost"
@@ -238,7 +238,7 @@ const Profile = () => {
       </header>
 
       {/* Content Tabs */}
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="created" className="gap-2">
@@ -310,6 +310,7 @@ const Profile = () => {
         media={selectedMedia}
         isOpen={!!selectedMedia}
         onClose={() => setSelectedMedia(null)}
+        allMedia={[...userMedia, ...likedMedia]}
       />
     </div>
   );
