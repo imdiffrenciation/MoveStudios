@@ -2,6 +2,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Heart, MessageCircle, Share2, X, DollarSign } from 'lucide-react';
 import type { MediaItem } from '@/types';
 import { useLikes } from '@/hooks/useLikes';
@@ -17,9 +18,10 @@ interface MediaModalProps {
   media: MediaItem | null;
   isOpen: boolean;
   onClose: () => void;
+  onTagClick?: (tag: string) => void;
 }
 
-const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
+const MediaModal = ({ media, isOpen, onClose, onTagClick }: MediaModalProps) => {
   const { user } = useAuth();
   const { isLiked, toggleLike, loading } = useLikes(media?.id || '');
   const { followUser, unfollowUser, isFollowing } = useFollows(user?.id);
@@ -61,13 +63,11 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
 
   const handleFollowToggle = async () => {
     if (!user || !creatorUserId || user.id === creatorUserId) {
-      console.log('Follow toggle blocked', { hasUser: !!user, creatorUserId, sameUser: user?.id === creatorUserId });
       return;
     }
 
     setFollowLoading(true);
     try {
-      console.log('Follow toggle start', { isFollowingCreator, creatorUserId, currentUserId: user.id });
       if (isFollowingCreator) {
         const { error } = await (supabase as any)
           .from('follows')
@@ -93,61 +93,69 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
     }
   };
 
+  const handleTagClick = (tag: string) => {
+    if (onTagClick) {
+      onTagClick(tag);
+      onClose();
+    }
+  };
+
   if (!media) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] p-0 gap-0">
-        <div className="flex h-full">
-          {/* Media Display */}
-          <div className="flex-1 bg-black flex items-center justify-center relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white"
-            >
-              <X className="w-5 h-5" />
-            </Button>
-            
+      <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] p-0 gap-0 overflow-hidden">
+        <div className="flex flex-col h-full max-h-[90vh]">
+          {/* Close Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+
+          {/* Media Display - Top */}
+          <div className="w-full bg-black flex items-center justify-center min-h-[200px] max-h-[50vh]">
             {media.type === 'image' ? (
               <img
                 src={media.url}
                 alt={media.title}
-                className="max-w-full max-h-full object-contain"
+                className="w-full h-full object-contain max-h-[50vh]"
               />
             ) : (
               <video
                 src={media.url}
                 controls
-                className="max-w-full max-h-full"
+                className="w-full h-full object-contain max-h-[50vh]"
               />
             )}
           </div>
 
-          {/* Info Sidebar */}
-          <div className="w-96 bg-card flex flex-col">
-            {/* Creator Info */}
-            <div className="p-6 border-b border-border">
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarFallback>
-                    {media.creator.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h3 
-                    className="font-semibold text-foreground hover:underline cursor-pointer"
-                    onClick={() => {
-                      if (creatorUserId && creatorUserId !== user?.id) {
-                        navigate(`/profile/${creatorUserId}`);
-                        onClose();
-                      }
-                    }}
-                  >
-                    {media.creator}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">Creator</p>
+          {/* Details Section - Bottom */}
+          <ScrollArea className="flex-1 max-h-[40vh]">
+            <div className="p-4 space-y-4">
+              {/* Creator Info & Actions */}
+              <div className="flex items-center justify-between">
+                <div 
+                  className="flex items-center gap-3 cursor-pointer hover:opacity-80"
+                  onClick={() => {
+                    if (creatorUserId) {
+                      navigate(`/profile/${creatorUserId}`);
+                      onClose();
+                    }
+                  }}
+                >
+                  <Avatar className="w-10 h-10">
+                    <AvatarFallback>
+                      {media.creator.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold text-foreground text-sm">{media.creator}</h3>
+                    <p className="text-xs text-muted-foreground">Creator</p>
+                  </div>
                 </div>
                 {user && creatorUserId && user.id !== creatorUserId && (
                   <Button 
@@ -160,32 +168,27 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
                   </Button>
                 )}
               </div>
-            </div>
 
-            {/* Media Details */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <h2 className="text-2xl font-bold text-foreground mb-4">{media.title}</h2>
-              
+              {/* Title */}
+              <h2 className="text-lg font-bold text-foreground">{media.title}</h2>
+
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2">
                 <Button
                   variant={isLiked ? "default" : "outline"}
                   size="sm"
-                  onClick={async () => {
-                    console.log('Like toggle clicked', { mediaId: media.id });
-                    await toggleLike();
-                  }}
+                  onClick={() => toggleLike()}
                   disabled={loading}
-                  className="gap-2"
+                  className="gap-1"
                 >
                   <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
                   {media.likes}
                 </Button>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-1">
                   <MessageCircle className="w-4 h-4" />
                   {comments.length}
                 </Button>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-1">
                   <DollarSign className="w-4 h-4" />
                   Tip
                 </Button>
@@ -195,22 +198,25 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
               </div>
 
               {/* Tags */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {media.tags.map((tag) => (
-                  <Button
-                    key={tag}
-                    variant="secondary"
-                    size="sm"
-                    className="text-xs"
-                  >
-                    #{tag}
-                  </Button>
-                ))}
-              </div>
+              {media.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {media.tags.map((tag) => (
+                    <Button
+                      key={tag}
+                      variant="secondary"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => handleTagClick(tag)}
+                    >
+                      #{tag}
+                    </Button>
+                  ))}
+                </div>
+              )}
 
               {/* Comments Section */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-foreground">Comments ({comments.length})</h3>
+              <div className="space-y-3 pt-2 border-t border-border">
+                <h3 className="font-semibold text-foreground text-sm">Comments ({comments.length})</h3>
                 
                 {/* Comment Input */}
                 {user && (
@@ -219,12 +225,13 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
                       placeholder="Add a comment..."
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
+                      className="text-sm"
                       onKeyPress={async (e) => {
                         if (e.key === 'Enter' && commentText.trim()) {
                           try {
                             await addComment(commentText, user.id);
                             setCommentText('');
-                            toast({ title: 'Comment added', description: 'Your comment has been posted.' });
+                            toast({ title: 'Comment added' });
                           } catch (error) {
                             toast({ title: 'Failed to post comment', variant: 'destructive' as any });
                           }
@@ -238,7 +245,7 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
                         try {
                           await addComment(commentText, user.id);
                           setCommentText('');
-                          toast({ title: 'Comment added', description: 'Your comment has been posted.' });
+                          toast({ title: 'Comment added' });
                         } catch (error) {
                           toast({ title: 'Failed to post comment', variant: 'destructive' as any });
                         }
@@ -251,30 +258,30 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
                 )}
 
                 {/* Comments List */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {comments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       No comments yet. Be the first to comment!
                     </p>
                   ) : (
                     comments.map((comment) => (
-                      <div key={comment.id} className="flex gap-3">
-                        <Avatar className="w-8 h-8">
+                      <div key={comment.id} className="flex gap-2">
+                        <Avatar className="w-7 h-7">
                           <AvatarImage src={comment.profiles?.avatar_url || undefined} />
-                          <AvatarFallback>
+                          <AvatarFallback className="text-xs">
                             {comment.profiles?.username?.charAt(0).toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-foreground">
+                            <span className="text-xs font-semibold text-foreground">
                               {comment.profiles?.username || 'Unknown'}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {new Date(comment.created_at).toLocaleDateString()}
                             </span>
                           </div>
-                          <p className="text-sm text-foreground mt-1">{comment.content}</p>
+                          <p className="text-sm text-foreground">{comment.content}</p>
                         </div>
                       </div>
                     ))
@@ -282,7 +289,7 @@ const MediaModal = ({ media, isOpen, onClose }: MediaModalProps) => {
                 </div>
               </div>
             </div>
-          </div>
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
