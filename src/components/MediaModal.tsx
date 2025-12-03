@@ -171,6 +171,8 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                 <video
                   src={currentMedia.url}
                   controls
+                  playsInline
+                  webkit-playsinline="true"
                   className="w-full max-h-[45vh] object-contain"
                 />
               )}
@@ -352,11 +354,11 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
               {recommendations.length > 0 && (
                 <div className="pt-6 border-t border-border">
                   <h3 className="text-lg font-semibold text-foreground mb-4">More like this</h3>
-                  <div className="columns-2 gap-3 space-y-0">
+                  <div className="columns-2 gap-4">
                     {recommendations.map((item) => (
                       <div
                         key={item.id}
-                        className="group relative cursor-pointer break-inside-avoid mb-3"
+                        className="group relative cursor-pointer break-inside-avoid mb-4"
                         onClick={() => handleRecommendationClick(item)}
                       >
                         <div className="relative rounded-2xl overflow-hidden bg-secondary/30 shadow-sm hover:shadow-md transition-all duration-300">
@@ -371,6 +373,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                               src={item.url}
                               className="w-full h-auto object-cover"
                               muted
+                              playsInline
                             />
                           )}
                           {/* Overlay on hover */}
