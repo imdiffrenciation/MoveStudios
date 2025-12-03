@@ -166,17 +166,17 @@ const Profile = () => {
               Back
             </Button>
           )}
-          <div className="flex items-start gap-6">
-            <Avatar className="w-24 h-24 ring-4 ring-primary">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+            <Avatar className="w-20 h-20 sm:w-24 sm:h-24 ring-4 ring-primary flex-shrink-0">
               <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`} />
               <AvatarFallback>{profile?.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
 
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-4">
+            <div className="flex-1 w-full text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-2 mb-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">{profile?.username || 'Loading...'}</h1>
-                  <p className="text-muted-foreground">@{profile?.username || 'user'}</p>
+                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">{profile?.username || 'Loading...'}</h1>
+                  <p className="text-sm text-muted-foreground">@{profile?.username || 'user'}</p>
                 </div>
                 {isOwnProfile ? (
                   <Button
@@ -199,36 +199,37 @@ const Profile = () => {
                 )}
               </div>
 
-              <div className="flex gap-6 mb-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground">{userMedia.length}</div>
-                  <div className="text-sm text-muted-foreground">Posts</div>
+              {/* Stats Grid - Responsive */}
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4 mb-4">
+                <div className="text-center p-2 rounded-lg bg-secondary/50">
+                  <div className="text-lg sm:text-2xl font-bold text-foreground">{userMedia.length}</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Posts</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground">{followersCount}</div>
-                  <div className="text-sm text-muted-foreground">Followers</div>
+                <div className="text-center p-2 rounded-lg bg-secondary/50">
+                  <div className="text-lg sm:text-2xl font-bold text-foreground">{followersCount}</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Followers</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground">{followingCount}</div>
-                  <div className="text-sm text-muted-foreground">Following</div>
+                <div className="text-center p-2 rounded-lg bg-secondary/50">
+                  <div className="text-lg sm:text-2xl font-bold text-foreground">{followingCount}</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Following</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground flex items-center gap-1 justify-center">
-                    <DollarSign className="w-5 h-5 text-primary" />
+                <div className="text-center p-2 rounded-lg bg-secondary/50">
+                  <div className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-1 justify-center">
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     {tipsReceived}
                   </div>
-                  <div className="text-sm text-muted-foreground">Tips Received</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Received</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground flex items-center gap-1 justify-center">
-                    <DollarSign className="w-5 h-5 text-muted-foreground" />
+                <div className="text-center p-2 rounded-lg bg-secondary/50">
+                  <div className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-1 justify-center">
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     {tipsSent}
                   </div>
-                  <div className="text-sm text-muted-foreground">Tips Sent</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Sent</div>
                 </div>
               </div>
 
-              <p className="text-foreground">
+              <p className="text-sm sm:text-base text-foreground">
                 {profile?.bio || 'No bio yet'}
               </p>
             </div>
