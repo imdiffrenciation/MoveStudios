@@ -181,24 +181,33 @@ export type Database = {
           bio: string | null
           created_at: string
           id: string
+          login_method: string | null
+          privy_user_id: string | null
           updated_at: string
           username: string
+          wallet_address: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           id: string
+          login_method?: string | null
+          privy_user_id?: string | null
           updated_at?: string
           username: string
+          wallet_address?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           id?: string
+          login_method?: string | null
+          privy_user_id?: string | null
           updated_at?: string
           username?: string
+          wallet_address?: string | null
         }
         Relationships: []
       }
