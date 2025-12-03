@@ -194,6 +194,7 @@ const Index = () => {
         isOpen={!!selectedMedia}
         onClose={() => setSelectedMedia(null)}
         onTagClick={handleTagClick}
+        allMedia={mediaItems}
       />
     </div>
   );
