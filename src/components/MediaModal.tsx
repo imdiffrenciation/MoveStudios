@@ -133,6 +133,11 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
     setCurrentMedia(item);
     setShowComments(false);
     setCommentText('');
+    // Scroll to top of modal
+    const scrollArea = document.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollArea) {
+      scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const recommendations = getRecommendations();
@@ -160,13 +165,13 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                 <img
                   src={currentMedia.url}
                   alt={currentMedia.title}
-                  className="w-full max-h-[60vh] object-contain"
+                  className="w-full max-h-[45vh] object-contain"
                 />
               ) : (
                 <video
                   src={currentMedia.url}
                   controls
-                  className="w-full max-h-[60vh] object-contain"
+                  className="w-full max-h-[45vh] object-contain"
                 />
               )}
             </div>
@@ -343,35 +348,37 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                 </div>
               )}
 
-              {/* Recommendations Section */}
+              {/* Recommendations Section - Pinterest Masonry Style */}
               {recommendations.length > 0 && (
                 <div className="pt-6 border-t border-border">
                   <h3 className="text-lg font-semibold text-foreground mb-4">More like this</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <div className="columns-2 gap-3 space-y-0">
                     {recommendations.map((item) => (
                       <div
                         key={item.id}
-                        className="group relative cursor-pointer rounded-xl overflow-hidden bg-secondary/30 aspect-[3/4] hover:scale-[1.02] transition-transform duration-200"
+                        className="group relative cursor-pointer break-inside-avoid mb-3"
                         onClick={() => handleRecommendationClick(item)}
                       >
-                        {item.type === 'image' ? (
-                          <img
-                            src={item.url}
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <video
-                            src={item.url}
-                            className="w-full h-full object-cover"
-                            muted
-                          />
-                        )}
-                        {/* Overlay on hover */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          <div className="absolute bottom-0 left-0 right-0 p-3">
-                            <p className="text-white text-sm font-medium line-clamp-2">{item.title}</p>
-                            <p className="text-white/70 text-xs mt-1">{item.creator}</p>
+                        <div className="relative rounded-2xl overflow-hidden bg-secondary/30 shadow-sm hover:shadow-md transition-all duration-300">
+                          {item.type === 'image' ? (
+                            <img
+                              src={item.url}
+                              alt={item.title}
+                              className="w-full h-auto object-cover"
+                            />
+                          ) : (
+                            <video
+                              src={item.url}
+                              className="w-full h-auto object-cover"
+                              muted
+                            />
+                          )}
+                          {/* Overlay on hover */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <div className="absolute bottom-0 left-0 right-0 p-3">
+                              <p className="text-white text-sm font-medium line-clamp-2">{item.title}</p>
+                              <p className="text-white/70 text-xs mt-1">{item.creator}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
