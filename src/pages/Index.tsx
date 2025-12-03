@@ -42,16 +42,58 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
+      {/* Header - Clean & Minimal */}
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+        <div className="px-3 md:px-6 py-2.5">
+          {/* Mobile Header */}
+          <div className="flex md:hidden items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => setShowSidebar(!showSidebar)}
+              >
+                <Menu className="w-4 h-4" />
+              </Button>
+              <button 
+                onClick={() => navigate('/')}
+                className="flex items-center gap-1.5"
+              >
+                <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-3.5 h-3.5 text-primary-foreground" />
+                </div>
+              </button>
+            </div>
+            
+            <div className="flex-1 max-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-9 pl-8 text-sm bg-secondary/50 border-0 rounded-full"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-0.5">
+              <ThemeToggle />
+              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate('/profile')}>
+                <User className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Desktop Header */}
+          <div className="hidden md:flex items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowSidebar(!showSidebar)}
-                title="Toggle trending tags"
               >
                 <Menu className="w-5 h-5" />
               </Button>
@@ -59,40 +101,32 @@ const Index = () => {
                 onClick={() => navigate('/')}
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-primary-foreground" />
                 </div>
-                <span className="text-lg font-bold text-foreground">Movement</span>
+                <span className="text-xl font-semibold text-foreground">Movement</span>
               </button>
             </div>
             
-            <div className="flex-1 max-w-2xl">
+            <div className="flex-1 max-w-xl">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Search content..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-secondary border-border"
+                  className="h-11 pl-12 bg-secondary/50 border-0 rounded-full text-base"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <ThemeToggle />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/profile')}
-              >
+              <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
                 <User className="w-5 h-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/settings')}
-              >
+              <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
                 <Settings className="w-5 h-5" />
               </Button>
             </div>
@@ -101,17 +135,17 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <div className="container mx-auto px-3 md:px-4 py-4 md:py-6 flex gap-4 md:gap-6">
+      <div className="px-3 md:px-6 py-4 flex gap-6">
         {/* Sidebar - Trending Tags - Hidden on mobile */}
         {showSidebar && (
-          <aside className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky top-24">
-            <TrendingTags 
-              onTagSelect={handleTagClick}
-              selectedTag={selectedTag}
-            />
-          </div>
-        </aside>
+          <aside className="hidden lg:block w-56 flex-shrink-0">
+            <div className="sticky top-20">
+              <TrendingTags 
+                onTagSelect={handleTagClick}
+                selectedTag={selectedTag}
+              />
+            </div>
+          </aside>
         )}
 
         {/* Feed */}
