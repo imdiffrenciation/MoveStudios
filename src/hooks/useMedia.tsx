@@ -20,7 +20,7 @@ export const useMedia = () => {
       const userIds = [...new Set(mediaData.map((m) => m.user_id))];
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url')
+        .select('id, username, avatar_url, wallet_address')
         .in('id', userIds.map(id => id)); // user_id is stored as text of uuid
 
       const profilesMap = new Map(
@@ -35,6 +35,7 @@ export const useMedia = () => {
           url: item.url,
           title: item.title,
           creator: profile?.username || 'Unknown',
+          creatorWalletAddress: profile?.wallet_address || undefined,
           tags: item.tags || [],
           likes: item.likes_count || 0,
           taps: item.views_count || 0,

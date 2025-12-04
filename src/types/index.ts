@@ -4,6 +4,7 @@ export interface MediaItem {
   url: string;
   title: string;
   creator: string;
+  creatorWalletAddress?: string;
   tags: string[];
   likes: number;
   taps: number;
