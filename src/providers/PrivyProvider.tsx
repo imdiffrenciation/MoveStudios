@@ -16,8 +16,7 @@ export function PrivyClientProvider({ children }: PrivyClientProviderProps) {
 
   return (
     <PrivyProvider
-      appId={import.meta.env.VITE_PRIVY_APP_ID || ""}
-      clientId={import.meta.env.VITE_PRIVY_CLIENT_ID || ""}
+      appId="cmiqf6jw1011tjv0c646skg10"
       config={privyConfig}
     >
       {children}
