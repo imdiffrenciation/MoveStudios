@@ -80,9 +80,9 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
     setIsUploading(true);
     
     try {
-      // Upload file to storage
+      // Upload file to storage using privy_user_id
       const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${profile.privy_user_id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('media')
@@ -95,10 +95,10 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
         .from('media')
         .getPublicUrl(fileName);
 
-      // Insert media record via edge function
+      // Insert media record via edge function with privy_user_id
       const response = await supabase.functions.invoke('upload-media', {
         body: {
-          user_id: profile.id,
+          user_id: profile.privy_user_id,
           type: file.type.startsWith('video/') ? 'video' : 'image',
           url: publicUrl,
           title: title.trim(),
