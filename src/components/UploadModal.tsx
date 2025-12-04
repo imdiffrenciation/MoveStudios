@@ -95,19 +95,19 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
         .from('media')
         .getPublicUrl(fileName);
 
-      // Insert media record
-      const { error: insertError } = await supabase
-        .from('media')
-        .insert({
+      // Insert media record via edge function
+      const response = await supabase.functions.invoke('upload-media', {
+        body: {
           user_id: profile.id,
           type: file.type.startsWith('video/') ? 'video' : 'image',
           url: publicUrl,
           title: title.trim(),
           description: description.trim() || null,
           tags: tags.length > 0 ? tags : null,
-        });
+        },
+      });
 
-      if (insertError) throw insertError;
+      if (response.error) throw response.error;
 
       toast({
         title: 'Upload successful!',

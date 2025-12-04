@@ -40,25 +40,19 @@ export const useLikes = (mediaId: string) => {
 
     setLoading(true);
     try {
-      if (isLiked) {
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .eq('user_id', profile.id)
-          .eq('media_id', mediaId);
+      const response = await supabase.functions.invoke('toggle-like', {
+        body: {
+          user_id: profile.id,
+          media_id: mediaId,
+        },
+      });
 
-        if (error) throw error;
-        setIsLiked(false);
-      } else {
-        const { error } = await supabase
-          .from('likes')
-          .insert({ user_id: profile.id, media_id: mediaId });
-
-        if (error) throw error;
-        setIsLiked(true);
-      }
+      if (response.error) throw response.error;
+      
+      setIsLiked(response.data?.liked || false);
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Error toggling like:', error);
+      toast.error(error.message || 'Failed to toggle like');
     } finally {
       setLoading(false);
     }

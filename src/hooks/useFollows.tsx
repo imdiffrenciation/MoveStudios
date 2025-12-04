@@ -76,18 +76,25 @@ export const useFollows = (userId: string | undefined) => {
     return !!data;
   };
 
+  const toggleFollow = async (targetUserId: string, currentUserId: string) => {
+    const response = await supabase.functions.invoke('toggle-follow', {
+      body: {
+        follower_id: currentUserId,
+        following_id: targetUserId,
+      },
+    });
+
+    if (response.error) throw response.error;
+    return response.data;
+  };
+
+  // Keep legacy methods for backwards compatibility
   const followUser = async (targetUserId: string, currentUserId: string) => {
-    return (supabase as any)
-      .from('follows')
-      .insert({ follower_id: currentUserId, following_id: targetUserId });
+    return toggleFollow(targetUserId, currentUserId);
   };
 
   const unfollowUser = async (targetUserId: string, currentUserId: string) => {
-    return (supabase as any)
-      .from('follows')
-      .delete()
-      .eq('follower_id', currentUserId)
-      .eq('following_id', targetUserId);
+    return toggleFollow(targetUserId, currentUserId);
   };
 
   return {
@@ -97,5 +104,6 @@ export const useFollows = (userId: string | undefined) => {
     followUser,
     unfollowUser,
     isFollowing,
+    toggleFollow,
   };
 };

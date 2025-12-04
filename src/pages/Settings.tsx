@@ -35,16 +35,16 @@ const Settings = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
+      const response = await supabase.functions.invoke('update-profile', {
+        body: {
+          profile_id: profile.id,
           username,
           bio,
           avatar_url: avatarUrl,
-        })
-        .eq('id', profile.id);
+        },
+      });
 
-      if (error) throw error;
+      if (response.error) throw response.error;
 
       toast({
         title: "Success",

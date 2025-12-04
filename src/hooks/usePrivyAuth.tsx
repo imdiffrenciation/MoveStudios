@@ -17,6 +17,32 @@ export const usePrivyAuth = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const syncPrivyUser = useCallback(async () => {
+    if (!user?.id) return null;
+
+    try {
+      // Get user details from Privy
+      const email = user.email?.address;
+      const walletAddress = user.wallet?.address;
+      const loginMethod = user.linkedAccounts?.[0]?.type || 'unknown';
+
+      const response = await supabase.functions.invoke('sync-privy-user', {
+        body: {
+          privy_user_id: user.id,
+          email,
+          wallet_address: walletAddress,
+          login_method: loginMethod,
+        },
+      });
+
+      if (response.error) throw response.error;
+      return response.data?.profile || null;
+    } catch (error) {
+      console.error('Error syncing Privy user:', error);
+      return null;
+    }
+  }, [user]);
+
   const fetchProfile = useCallback(async () => {
     if (!user?.id) {
       setProfile(null);
@@ -25,6 +51,7 @@ export const usePrivyAuth = () => {
     }
 
     try {
+      // First try to fetch existing profile
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -32,14 +59,23 @@ export const usePrivyAuth = () => {
         .maybeSingle();
 
       if (error) throw error;
-      setProfile(data);
+
+      if (data) {
+        setProfile(data);
+      } else {
+        // No profile exists, sync the Privy user to create one
+        const syncedProfile = await syncPrivyUser();
+        setProfile(syncedProfile);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      setProfile(null);
+      // Try to sync user if fetch failed
+      const syncedProfile = await syncPrivyUser();
+      setProfile(syncedProfile);
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, syncPrivyUser]);
 
   useEffect(() => {
     if (ready) {
