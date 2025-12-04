@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, Eye, Bookmark, Play } from 'lucide-react';
+import { Heart, Eye, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { MediaItem } from '@/types';
 interface MasonryGridProps {
@@ -82,7 +82,6 @@ const MediaCard = ({
                 <span className="text-xs font-medium">{item.taps}</span>
               </div>
             </div>
-            <Bookmark className="w-4 h-4 text-background" />
           </div>
         </div>
       </div>
