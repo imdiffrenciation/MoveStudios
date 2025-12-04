@@ -9,7 +9,7 @@ interface Comment {
   profiles: {
     username: string;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 export const useComments = (mediaId: string | null) => {
@@ -46,24 +46,56 @@ export const useComments = (mediaId: string | null) => {
   const fetchComments = async () => {
     if (!mediaId) return;
 
-    const { data, error } = await (supabase as any)
+    // Fetch comments first
+    const { data: commentsData, error: commentsError } = await (supabase as any)
       .from('comments')
-      .select(`
-        *,
-        profiles:user_id (
-          username,
-          avatar_url
-        )
-      `)
+      .select('*')
       .eq('media_id', mediaId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching comments:', error);
+    if (commentsError) {
+      console.error('Error fetching comments:', commentsError);
       return;
     }
 
-    setComments(data || []);
+    if (!commentsData || commentsData.length === 0) {
+      setComments([]);
+      return;
+    }
+
+    // Get unique user IDs
+    const userIds = [...new Set(commentsData.map((c: any) => c.user_id))];
+
+    // Fetch profiles separately
+    const { data: profilesData } = await (supabase as any)
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .in('id', userIds);
+
+    // Create a map of user_id to profile
+    const profilesMap = new Map();
+    if (profilesData) {
+      profilesData.forEach((profile: any) => {
+        profilesMap.set(profile.id, profile);
+      });
+    }
+
+    // Merge comments with profiles
+    const formattedComments: Comment[] = commentsData.map((comment: any) => {
+      const profile = profilesMap.get(comment.user_id);
+      return {
+        id: comment.id,
+        content: comment.content,
+        created_at: comment.created_at,
+        user_id: comment.user_id,
+        profiles: profile ? {
+          username: profile.username,
+          avatar_url: profile.avatar_url,
+        } : null,
+      };
+    });
+
+    setComments(formattedComments);
   };
 
   const addComment = async (content: string, userId: string) => {
