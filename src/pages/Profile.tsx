@@ -178,24 +178,40 @@ const Profile = () => {
 
     const { data } = await (supabase as any)
       .from('media')
-      .select(`
-        *,
-        profiles!media_user_id_fkey(username, avatar_url)
-      `)
+      .select('*')
       .eq('user_id', profileUserId)
       .order('created_at', { ascending: false });
 
     if (data) {
-      const mapped = data.map((item: any) => ({
-        id: item.id,
-        type: item.type,
-        url: item.url,
-        title: item.title,
-        creator: item.profiles?.username || 'Anonymous',
-        tags: item.tags || [],
-        likes: item.likes_count || 0,
-        taps: item.views_count || 0,
-      }));
+      // Get unique user IDs for profiles
+      const userIds = [...new Set(data.map((item: any) => item.user_id))];
+      
+      // Fetch profiles separately
+      const { data: profilesData } = await (supabase as any)
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', userIds);
+
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach((profile: any) => {
+          profilesMap.set(profile.id, profile);
+        });
+      }
+
+      const mapped = data.map((item: any) => {
+        const profile = profilesMap.get(item.user_id);
+        return {
+          id: item.id,
+          type: item.type,
+          url: item.url,
+          title: item.title,
+          creator: profile?.username || 'Anonymous',
+          tags: item.tags || [],
+          likes: item.likes_count || 0,
+          taps: item.views_count || 0,
+        };
+      });
       setUserMedia(mapped);
     }
   };
@@ -207,27 +223,43 @@ const Profile = () => {
       .from('likes')
       .select(`
         media_id,
-        media:media_id (
-          *,
-          profiles!media_user_id_fkey(username, avatar_url)
-        )
+        media:media_id (*)
       `)
       .eq('user_id', profileUserId)
       .order('created_at', { ascending: false });
 
     if (data) {
+      // Get unique user IDs for profiles
+      const userIds = [...new Set(data.filter((item: any) => item.media).map((item: any) => item.media.user_id))];
+      
+      // Fetch profiles separately
+      const { data: profilesData } = await (supabase as any)
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', userIds);
+
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach((profile: any) => {
+          profilesMap.set(profile.id, profile);
+        });
+      }
+
       const mapped = data
         .filter((item: any) => item.media)
-        .map((item: any) => ({
-          id: item.media.id,
-          type: item.media.type,
-          url: item.media.url,
-          title: item.media.title,
-          creator: item.media.profiles?.username || 'Anonymous',
-          tags: item.media.tags || [],
-          likes: item.media.likes_count || 0,
-          taps: item.media.views_count || 0,
-        }));
+        .map((item: any) => {
+          const profile = profilesMap.get(item.media.user_id);
+          return {
+            id: item.media.id,
+            type: item.media.type,
+            url: item.media.url,
+            title: item.media.title,
+            creator: profile?.username || 'Anonymous',
+            tags: item.media.tags || [],
+            likes: item.media.likes_count || 0,
+            taps: item.media.views_count || 0,
+          };
+        });
       setLikedMedia(mapped);
     }
   };
