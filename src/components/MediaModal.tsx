@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Heart, MessageCircle, Share2, X, DollarSign, ChevronDown } from 'lucide-react';
+import { Heart, MessageCircle, Share2, X, DollarSign, ChevronDown, Bookmark } from 'lucide-react';
 import type { MediaItem } from '@/types';
 import { useLikes } from '@/hooks/useLikes';
+import { useSaves } from '@/hooks/useSaves';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
 import { useComments } from '@/hooks/useComments';
@@ -26,6 +27,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
   const { user } = useAuth();
   const [currentMedia, setCurrentMedia] = useState<MediaItem | null>(media);
   const { isLiked, likesCount, toggleLike, loading } = useLikes(currentMedia?.id || '');
+  const { isSaved, toggleSave, loading: saveLoading } = useSaves(currentMedia?.id || '');
   const { isFollowing } = useFollows(user?.id);
   const { comments, loading: commentsLoading, addComment } = useComments(currentMedia?.id || null);
   const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
@@ -244,6 +246,16 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                 <Button variant="outline" size="sm" className="gap-2 rounded-full">
                   <DollarSign className="w-4 h-4" />
                   Tip
+                </Button>
+                <Button 
+                  variant={isSaved ? "default" : "outline"} 
+                  size="sm" 
+                  className="gap-2 rounded-full"
+                  onClick={() => toggleSave()}
+                  disabled={saveLoading}
+                >
+                  <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                  {isSaved ? 'Saved' : 'Save'}
                 </Button>
                 <Button variant="outline" size="sm" className="rounded-full">
                   <Share2 className="w-4 h-4" />

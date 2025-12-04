@@ -27,6 +27,7 @@ const Profile = () => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [userMedia, setUserMedia] = useState<MediaItem[]>([]);
   const [likedMedia, setLikedMedia] = useState<MediaItem[]>([]);
+  const [savedMedia, setSavedMedia] = useState<MediaItem[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
@@ -38,9 +39,67 @@ const Profile = () => {
       fetchProfile();
       fetchUserMedia();
       fetchLikedMedia();
+      fetchSavedMedia();
       if (!isOwnProfile && user) {
         checkFollowStatus();
       }
+
+      // Real-time subscription for created media
+      const mediaChannel = supabase
+        .channel(`profile-media-${profileUserId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'media',
+            filter: `user_id=eq.${profileUserId}`,
+          },
+          () => {
+            fetchUserMedia();
+          }
+        )
+        .subscribe();
+
+      // Real-time subscription for likes
+      const likesChannel = supabase
+        .channel(`profile-likes-${profileUserId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'likes',
+            filter: `user_id=eq.${profileUserId}`,
+          },
+          () => {
+            fetchLikedMedia();
+          }
+        )
+        .subscribe();
+
+      // Real-time subscription for saves
+      const savesChannel = supabase
+        .channel(`profile-saves-${profileUserId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'saves',
+            filter: `user_id=eq.${profileUserId}`,
+          },
+          () => {
+            fetchSavedMedia();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(mediaChannel);
+        supabase.removeChannel(likesChannel);
+        supabase.removeChannel(savesChannel);
+      };
     }
   }, [profileUserId, user]);
 
@@ -61,6 +120,56 @@ const Profile = () => {
 
     if (data) {
       setProfile(data);
+    }
+  };
+
+  const fetchSavedMedia = async () => {
+    if (!profileUserId) return;
+
+    const { data } = await (supabase as any)
+      .from('saves')
+      .select(`
+        media_id,
+        media:media_id (
+          *
+        )
+      `)
+      .eq('user_id', profileUserId)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      // Get unique user IDs for profiles
+      const userIds = [...new Set(data.filter((item: any) => item.media).map((item: any) => item.media.user_id))];
+      
+      // Fetch profiles
+      const { data: profilesData } = await (supabase as any)
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', userIds);
+
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach((profile: any) => {
+          profilesMap.set(profile.id, profile);
+        });
+      }
+
+      const mapped = data
+        .filter((item: any) => item.media)
+        .map((item: any) => {
+          const profile = profilesMap.get(item.media.user_id);
+          return {
+            id: item.media.id,
+            type: item.media.type,
+            url: item.media.url,
+            title: item.media.title,
+            creator: profile?.username || 'Anonymous',
+            tags: item.media.tags || [],
+            likes: item.media.likes_count || 0,
+            taps: item.media.views_count || 0,
+          };
+        });
+      setSavedMedia(mapped);
     }
   };
 
@@ -289,11 +398,18 @@ const Profile = () => {
           </TabsContent>
 
           <TabsContent value="saved">
-            <Card className="p-12 text-center border-dashed">
-              <Bookmark className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-foreground mb-2">No saved posts</h3>
-              <p className="text-muted-foreground">Save posts to view them later</p>
-            </Card>
+            {savedMedia.length > 0 ? (
+              <MasonryGrid 
+                items={savedMedia}
+                onMediaClick={handleMediaClick}
+              />
+            ) : (
+              <Card className="p-12 text-center border-dashed">
+                <Bookmark className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">No saved posts</h3>
+                <p className="text-muted-foreground">Save posts to view them later</p>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
@@ -310,7 +426,7 @@ const Profile = () => {
         media={selectedMedia}
         isOpen={!!selectedMedia}
         onClose={() => setSelectedMedia(null)}
-        allMedia={[...userMedia, ...likedMedia]}
+        allMedia={[...userMedia, ...likedMedia, ...savedMedia]}
       />
     </div>
   );

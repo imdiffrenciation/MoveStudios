@@ -171,6 +171,35 @@ export type Database = {
         }
         Relationships: []
       }
+      saves: {
+        Row: {
+          created_at: string
+          id: string
+          media_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          media_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          media_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saves_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
