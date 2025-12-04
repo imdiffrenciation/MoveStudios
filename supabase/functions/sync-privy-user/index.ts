@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { privy_user_id, email, wallet_address, login_method } = await req.json();
+    const { privy_user_id, email, wallet_address } = await req.json();
 
     if (!privy_user_id) {
       return new Response(
@@ -25,7 +25,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if profile exists with this privy_user_id
+    // Check if profile exists with this privy_user_id (now the primary key)
     const { data: existingProfile, error: fetchError } = await supabase
       .from("profiles")
       .select("*")
@@ -42,10 +42,9 @@ serve(async (req) => {
         .from("profiles")
         .update({
           wallet_address: wallet_address || existingProfile.wallet_address,
-          login_method: login_method || existingProfile.login_method,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", existingProfile.id)
+        .eq("privy_user_id", privy_user_id)
         .select()
         .single();
 
@@ -57,17 +56,15 @@ serve(async (req) => {
       );
     }
 
-    // Create new profile
+    // Create new profile with privy_user_id as primary key
     const username = email ? email.split("@")[0] : `user_${privy_user_id.slice(-8)}`;
     
     const { data: newProfile, error: insertError } = await supabase
       .from("profiles")
       .insert({
-        id: crypto.randomUUID(),
         privy_user_id,
         username,
         wallet_address,
-        login_method,
       })
       .select()
       .single();

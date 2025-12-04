@@ -19,10 +19,11 @@ const Profile = () => {
   const navigate = useNavigate();
   const { userId } = useParams();
   const { profile: currentUserProfile } = usePrivyAuth();
-  const profileUserId = userId || currentUserProfile?.id;
-  const isOwnProfile = !userId || userId === currentUserProfile?.id;
+  // userId from params is privy_user_id
+  const profileUserId = userId || currentUserProfile?.privy_user_id;
+  const isOwnProfile = !userId || userId === currentUserProfile?.privy_user_id;
   
-  const { followersCount, followingCount, isFollowing: checkIsFollowing, followUser, unfollowUser } = useFollows(profileUserId);
+  const { followersCount, followingCount, isFollowing: checkIsFollowing, toggleFollow } = useFollows(profileUserId);
   const [activeTab, setActiveTab] = useState('created');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [userMedia, setUserMedia] = useState<MediaItem[]>([]);
@@ -46,17 +47,18 @@ const Profile = () => {
 
   const checkFollowStatus = async () => {
     if (!currentUserProfile || !profileUserId) return;
-    const following = await checkIsFollowing(profileUserId, currentUserProfile.id);
+    const following = await checkIsFollowing(profileUserId, currentUserProfile.privy_user_id);
     setIsFollowingUser(following);
   };
 
   const fetchProfile = async () => {
     if (!profileUserId) return;
 
+    // Query by privy_user_id (now the primary key)
     const { data } = await (supabase as any)
       .from('profiles')
       .select('*')
-      .eq('id', profileUserId)
+      .eq('privy_user_id', profileUserId)
       .maybeSingle();
 
     if (data) {
@@ -67,11 +69,12 @@ const Profile = () => {
   const fetchUserMedia = async () => {
     if (!profileUserId) return;
 
+    // user_id in media table is now privy_user_id
     const { data } = await (supabase as any)
       .from('media')
       .select(`
         *,
-        profiles!media_user_id_fkey(username, avatar_url)
+        profiles:user_id (username, avatar_url)
       `)
       .eq('user_id', profileUserId)
       .order('created_at', { ascending: false });
@@ -94,13 +97,14 @@ const Profile = () => {
   const fetchLikedMedia = async () => {
     if (!profileUserId) return;
 
+    // user_id in likes table is now privy_user_id
     const { data } = await (supabase as any)
       .from('likes')
       .select(`
         media_id,
         media:media_id (
           *,
-          profiles!media_user_id_fkey(username, avatar_url)
+          profiles:user_id (username, avatar_url)
         )
       `)
       .eq('user_id', profileUserId)
@@ -127,15 +131,9 @@ const Profile = () => {
     if (!currentUserProfile || !profileUserId) return;
 
     try {
-      if (isFollowingUser) {
-        await unfollowUser(profileUserId, currentUserProfile.id);
-        setIsFollowingUser(false);
-        toast.success('Unfollowed');
-      } else {
-        await followUser(profileUserId, currentUserProfile.id);
-        setIsFollowingUser(true);
-        toast.success('Following');
-      }
+      const result = await toggleFollow(profileUserId, currentUserProfile.privy_user_id);
+      setIsFollowingUser(result?.following || false);
+      toast.success(result?.following ? 'Following' : 'Unfollowed');
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -168,7 +166,7 @@ const Profile = () => {
           )}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
             <Avatar className="w-20 h-20 sm:w-24 sm:h-24 ring-4 ring-primary flex-shrink-0">
-              <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id}`} />
+              <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.privy_user_id}`} />
               <AvatarFallback>{profile?.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
 

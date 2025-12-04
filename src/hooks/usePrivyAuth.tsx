@@ -3,13 +3,11 @@ import { usePrivy } from '@privy-io/react-auth';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UserProfile {
-  id: string;
+  privy_user_id: string;
   username: string;
   avatar_url: string | null;
   bio: string | null;
   wallet_address: string | null;
-  privy_user_id: string | null;
-  login_method: string | null;
 }
 
 export const usePrivyAuth = () => {
@@ -24,14 +22,12 @@ export const usePrivyAuth = () => {
       // Get user details from Privy
       const email = user.email?.address;
       const walletAddress = user.wallet?.address;
-      const loginMethod = user.linkedAccounts?.[0]?.type || 'unknown';
 
       const response = await supabase.functions.invoke('sync-privy-user', {
         body: {
           privy_user_id: user.id,
           email,
           wallet_address: walletAddress,
-          login_method: loginMethod,
         },
       });
 
@@ -51,10 +47,10 @@ export const usePrivyAuth = () => {
     }
 
     try {
-      // First try to fetch existing profile
+      // First try to fetch existing profile by privy_user_id (now the primary key)
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('privy_user_id, username, avatar_url, bio, wallet_address')
         .eq('privy_user_id', user.id)
         .maybeSingle();
 
@@ -65,13 +61,29 @@ export const usePrivyAuth = () => {
       } else {
         // No profile exists, sync the Privy user to create one
         const syncedProfile = await syncPrivyUser();
-        setProfile(syncedProfile);
+        if (syncedProfile) {
+          setProfile({
+            privy_user_id: syncedProfile.privy_user_id,
+            username: syncedProfile.username,
+            avatar_url: syncedProfile.avatar_url,
+            bio: syncedProfile.bio,
+            wallet_address: syncedProfile.wallet_address,
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
       // Try to sync user if fetch failed
       const syncedProfile = await syncPrivyUser();
-      setProfile(syncedProfile);
+      if (syncedProfile) {
+        setProfile({
+          privy_user_id: syncedProfile.privy_user_id,
+          username: syncedProfile.username,
+          avatar_url: syncedProfile.avatar_url,
+          bio: syncedProfile.bio,
+          wallet_address: syncedProfile.wallet_address,
+        });
+      }
     } finally {
       setLoading(false);
     }
