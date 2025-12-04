@@ -25,7 +25,7 @@ interface MediaModalProps {
 const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: MediaModalProps) => {
   const { user } = useAuth();
   const [currentMedia, setCurrentMedia] = useState<MediaItem | null>(media);
-  const { isLiked, toggleLike, loading } = useLikes(currentMedia?.id || '');
+  const { isLiked, likesCount, toggleLike, loading } = useLikes(currentMedia?.id || '');
   const { isFollowing } = useFollows(user?.id);
   const { comments, loading: commentsLoading, addComment } = useComments(currentMedia?.id || null);
   const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
@@ -230,7 +230,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                   className="gap-2 rounded-full"
                 >
                   <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-                  {currentMedia.likes}
+                  {likesCount}
                 </Button>
                 <Button 
                   variant="outline" 
