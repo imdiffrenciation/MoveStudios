@@ -200,7 +200,13 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                   </Avatar>
                   <div>
                     <h3 className="font-semibold text-foreground">{currentMedia.creator}</h3>
-                    <p className="text-xs text-muted-foreground">Creator</p>
+                    {currentMedia.creatorWalletAddress ? (
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {currentMedia.creatorWalletAddress.slice(0, 4)}...{currentMedia.creatorWalletAddress.slice(-4)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Creator</p>
+                    )}
                   </div>
                 </div>
                 
