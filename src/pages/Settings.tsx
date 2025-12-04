@@ -37,7 +37,7 @@ const Settings = () => {
     try {
       const response = await supabase.functions.invoke('update-profile', {
         body: {
-          privy_user_id: profile.privy_user_id,
+          profile_id: profile.id,
           username,
           bio,
           avatar_url: avatarUrl,

@@ -26,7 +26,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
   const { profile } = usePrivyAuth();
   const [currentMedia, setCurrentMedia] = useState<MediaItem | null>(media);
   const { isLiked, toggleLike, loading } = useLikes(currentMedia?.id || '');
-  const { isFollowing } = useFollows(profile?.privy_user_id);
+  const { isFollowing } = useFollows(profile?.id);
   const { comments, loading: commentsLoading, addComment } = useComments(currentMedia?.id || null);
   const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -60,9 +60,9 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
 
   useEffect(() => {
     const checkFollowing = async () => {
-      if (!profile || !creatorUserId || profile.privy_user_id === creatorUserId) return;
+      if (!profile || !creatorUserId || profile.id === creatorUserId) return;
       
-      const following = await isFollowing(creatorUserId, profile.privy_user_id);
+      const following = await isFollowing(creatorUserId, profile.id);
       setIsFollowingCreator(following);
     };
     
@@ -70,26 +70,29 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
   }, [profile, creatorUserId, isFollowing]);
 
   const handleFollowToggle = async () => {
-    if (!profile || !creatorUserId || profile.privy_user_id === creatorUserId) {
+    if (!profile || !creatorUserId || profile.id === creatorUserId) {
       return;
     }
 
     setFollowLoading(true);
     try {
-      const response = await supabase.functions.invoke('toggle-follow', {
-        body: {
-          follower_id: profile.privy_user_id,
-          following_id: creatorUserId,
-        },
-      });
-
-      if (response.error) throw response.error;
-      
-      setIsFollowingCreator(response.data?.following || false);
-      toast({ 
-        title: response.data?.following ? 'Followed' : 'Unfollowed', 
-        description: response.data?.following ? 'You are now following this creator.' : 'You have unfollowed this creator.' 
-      });
+      if (isFollowingCreator) {
+        const { error } = await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', profile.id)
+          .eq('following_id', creatorUserId);
+        if (error) throw error;
+        setIsFollowingCreator(false);
+        toast({ title: 'Unfollowed', description: 'You have unfollowed this creator.' });
+      } else {
+        const { error } = await supabase
+          .from('follows')
+          .insert({ follower_id: profile.id, following_id: creatorUserId });
+        if (error) throw error;
+        setIsFollowingCreator(true);
+        toast({ title: 'Followed', description: 'You are now following this creator.' });
+      }
     } catch (error) {
       console.error('Follow toggle error:', error);
       toast({ title: 'Action failed', description: 'Please try again.', variant: 'destructive' as any });
@@ -200,7 +203,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  {profile && creatorUserId && profile.privy_user_id !== creatorUserId && (
+                  {profile && creatorUserId && profile.id !== creatorUserId && (
                     <Button 
                       variant={isFollowingCreator ? "outline" : "default"} 
                       size="sm"
@@ -285,7 +288,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                         onKeyPress={async (e) => {
                           if (e.key === 'Enter' && commentText.trim()) {
                             try {
-                              await addComment(commentText, profile.privy_user_id);
+                              await addComment(commentText, profile.id);
                               setCommentText('');
                               toast({ title: 'Comment added' });
                             } catch (error) {
@@ -300,7 +303,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                         onClick={async () => {
                           if (!commentText.trim()) return;
                           try {
-                            await addComment(commentText, profile.privy_user_id);
+                            await addComment(commentText, profile.id);
                             setCommentText('');
                             toast({ title: 'Comment added' });
                           } catch (error) {

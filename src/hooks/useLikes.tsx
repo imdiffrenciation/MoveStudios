@@ -9,19 +9,19 @@ export const useLikes = (mediaId: string) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (profile?.privy_user_id && mediaId) {
+    if (profile && mediaId) {
       checkIfLiked();
     }
-  }, [profile?.privy_user_id, mediaId]);
+  }, [profile, mediaId]);
 
   const checkIfLiked = async () => {
-    if (!profile?.privy_user_id) return;
+    if (!profile) return;
 
     try {
       const { data, error } = await supabase
         .from('likes')
         .select('id')
-        .eq('user_id', profile.privy_user_id)
+        .eq('user_id', profile.id)
         .eq('media_id', mediaId)
         .maybeSingle();
 
@@ -33,7 +33,7 @@ export const useLikes = (mediaId: string) => {
   };
 
   const toggleLike = async () => {
-    if (!profile?.privy_user_id) {
+    if (!profile) {
       toast.error('Please sign in to like posts');
       return;
     }
@@ -42,7 +42,7 @@ export const useLikes = (mediaId: string) => {
     try {
       const response = await supabase.functions.invoke('toggle-like', {
         body: {
-          user_id: profile.privy_user_id,
+          user_id: profile.id,
           media_id: mediaId,
         },
       });
