@@ -8,29 +8,38 @@ export const useMedia = () => {
 
   const fetchMedia = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      // Fetch media
+      const { data: mediaData, error: mediaError } = await supabase
         .from('media')
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (mediaError) throw mediaError;
 
-      const formattedMedia: MediaItem[] = data.map((item: any) => ({
-        id: item.id,
-        type: item.type,
-        url: item.url,
-        title: item.title,
-        creator: item.profiles?.username || 'Unknown',
-        tags: item.tags || [],
-        likes: item.likes_count || 0,
-        taps: item.views_count || 0,
-      }));
+      // Get unique user_ids and fetch profiles
+      const userIds = [...new Set(mediaData.map((m) => m.user_id))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', userIds.map(id => id)); // user_id is stored as text of uuid
+
+      const profilesMap = new Map(
+        profilesData?.map((p) => [p.id, p]) || []
+      );
+
+      const formattedMedia: MediaItem[] = mediaData.map((item) => {
+        const profile = profilesMap.get(item.user_id);
+        return {
+          id: item.id,
+          type: item.type as 'image' | 'video',
+          url: item.url,
+          title: item.title,
+          creator: profile?.username || 'Unknown',
+          tags: item.tags || [],
+          likes: item.likes_count || 0,
+          taps: item.views_count || 0,
+        };
+      });
 
       setMedia(formattedMedia);
     } catch (error) {
