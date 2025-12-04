@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { usePrivyAuth } from '@/hooks/usePrivyAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface UploadModalProps {
@@ -23,7 +23,7 @@ interface UploadModalProps {
 }
 
 const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
-  const { user } = useAuth();
+  const { profile } = usePrivyAuth();
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>('');
@@ -75,14 +75,14 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !title.trim() || !user) return;
+    if (!file || !title.trim() || !profile) return;
 
     setIsUploading(true);
     
     try {
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${profile.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('media')
@@ -99,7 +99,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
       const { error: insertError } = await supabase
         .from('media')
         .insert({
-          user_id: user.id,
+          user_id: profile.id,
           type: file.type.startsWith('video/') ? 'video' : 'image',
           url: publicUrl,
           title: title.trim(),
