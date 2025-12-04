@@ -85,13 +85,31 @@ const Settings = () => {
     }
   };
 
-  const handleWalletVerified = (address: string) => {
-    setWalletAddress(address);
-    setShowWalletConnect(false);
-    toast({
-      title: "Wallet Connected",
-      description: "Your wallet has been verified and linked to your profile.",
-    });
+  const handleWalletVerified = async (address: string) => {
+    if (!user) return;
+    
+    try {
+      // Immediately save to database
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({ wallet_address: address })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setWalletAddress(address);
+      setShowWalletConnect(false);
+      toast({
+        title: "Wallet Connected",
+        description: "Your wallet has been verified and saved to your profile.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to save wallet address: " + error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleUpload = () => {
