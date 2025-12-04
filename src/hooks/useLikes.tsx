@@ -6,11 +6,37 @@ import { toast } from 'sonner';
 export const useLikes = (mediaId: string) => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user && mediaId) {
+    if (mediaId) {
       checkIfLiked();
+      fetchLikesCount();
+
+      // Subscribe to realtime updates for this media's likes
+      const channel = supabase
+        .channel(`likes-${mediaId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'likes',
+            filter: `media_id=eq.${mediaId}`,
+          },
+          () => {
+            fetchLikesCount();
+            if (user) {
+              checkIfLiked();
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user, mediaId]);
 
@@ -29,6 +55,20 @@ export const useLikes = (mediaId: string) => {
       setIsLiked(!!data);
     } catch (error) {
       console.error('Error checking like status:', error);
+    }
+  };
+
+  const fetchLikesCount = async () => {
+    try {
+      const { count, error } = await (supabase as any)
+        .from('likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('media_id', mediaId);
+
+      if (error) throw error;
+      setLikesCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching likes count:', error);
     }
   };
 
@@ -64,5 +104,5 @@ export const useLikes = (mediaId: string) => {
     }
   };
 
-  return { isLiked, toggleLike, loading };
+  return { isLiked, likesCount, toggleLike, loading };
 };
