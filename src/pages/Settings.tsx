@@ -5,23 +5,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Wallet } from 'lucide-react';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useWallet } from '@aptos-labs/wallet-adapter-react';
+import { WalletSelectionModal } from '@/components/wallet/WalletSelectionModal';
+import { WalletVerification } from '@/components/wallet/WalletVerification';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { connected, account } = useWallet();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
+  const [showWalletConnect, setShowWalletConnect] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -80,6 +85,15 @@ const Settings = () => {
     }
   };
 
+  const handleWalletVerified = (address: string) => {
+    setWalletAddress(address);
+    setShowWalletConnect(false);
+    toast({
+      title: "Wallet Connected",
+      description: "Your wallet has been verified and linked to your profile.",
+    });
+  };
+
   const handleUpload = () => {
     setIsUploadModalOpen(false);
   };
@@ -103,7 +117,7 @@ const Settings = () => {
       </header>
 
       {/* Content */}
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-2xl">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-2xl space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Profile Settings</CardTitle>
@@ -141,19 +155,6 @@ const Settings = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="walletAddress">Wallet Address (for Tips)</Label>
-              <Input 
-                id="walletAddress" 
-                placeholder="0x..." 
-                value={walletAddress}
-                onChange={(e) => setWalletAddress(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Ensure the wallet provided is a Movement address to receive $MOVE tips
-              </p>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
               <Textarea 
                 id="bio" 
@@ -171,6 +172,80 @@ const Settings = () => {
             <Button variant="outline" className="w-full" onClick={() => signOut()}>
               Sign Out
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Wallet Connection Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="w-5 h-5" />
+              Wallet for Tips
+            </CardTitle>
+            <CardDescription>
+              Connect your Movement wallet to receive $MOVE tips from your supporters
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {walletAddress ? (
+              <div className="space-y-4">
+                <div className="p-3 rounded-lg bg-muted">
+                  <p className="text-xs font-medium mb-1">Connected Wallet:</p>
+                  <p className="font-mono text-xs break-all opacity-75">
+                    {walletAddress}
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    setWalletAddress('');
+                    setShowWalletConnect(true);
+                  }}
+                >
+                  Change Wallet
+                </Button>
+              </div>
+            ) : showWalletConnect ? (
+              connected && account ? (
+                <WalletVerification onVerified={handleWalletVerified} />
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Select a wallet to connect to Movement Network
+                  </p>
+                  <WalletSelectionModal onConnected={() => {}}>
+                    <Button className="w-full">
+                      <Wallet className="w-4 h-4 mr-2" />
+                      Select Wallet
+                    </Button>
+                  </WalletSelectionModal>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full"
+                    onClick={() => setShowWalletConnect(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Connect and verify your wallet to start receiving tips. You'll need to sign a message to prove ownership.
+                </p>
+                <Button 
+                  className="w-full"
+                  onClick={() => setShowWalletConnect(true)}
+                >
+                  <Wallet className="w-4 h-4 mr-2" />
+                  Connect Wallet to Receive Tips
+                </Button>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Ensure the wallet provided is a Movement address to receive $MOVE tips
+            </p>
           </CardContent>
         </Card>
       </div>
