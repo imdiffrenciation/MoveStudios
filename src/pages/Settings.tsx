@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Wallet } from 'lucide-react';
+import { ArrowLeft, User, Wallet } from 'lucide-react';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,6 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { WalletSelectionModal } from '@/components/wallet/WalletSelectionModal';
 import { WalletVerification } from '@/components/wallet/WalletVerification';
+import { cn } from '@/lib/utils';
+
+type SettingsTab = 'profile' | 'tips';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -27,6 +29,7 @@ const Settings = () => {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [showWalletConnect, setShowWalletConnect] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
   useEffect(() => {
     if (user) {
@@ -72,8 +75,6 @@ const Settings = () => {
         title: "Success",
         description: "Profile updated successfully",
       });
-      
-      navigate('/profile');
     } catch (error: any) {
       toast({
         title: "Error",
@@ -89,7 +90,6 @@ const Settings = () => {
     if (!user) return;
     
     try {
-      // Immediately save to database
       const { error } = await (supabase as any)
         .from('profiles')
         .update({ wallet_address: address })
@@ -116,6 +116,11 @@ const Settings = () => {
     setIsUploadModalOpen(false);
   };
 
+  const tabs = [
+    { id: 'profile' as const, label: 'Profile Settings', icon: User },
+    { id: 'tips' as const, label: 'Tips', icon: Wallet },
+  ];
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -126,146 +131,209 @@ const Settings = () => {
               variant="ghost"
               size="icon"
               onClick={() => navigate('/profile')}
+              className="rounded-full"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-xl font-bold text-foreground">Edit Profile</h1>
+            <h1 className="text-xl font-semibold text-foreground">Settings</h1>
           </div>
         </div>
       </header>
 
-      {/* Content */}
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-2xl space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Settings</CardTitle>
-            <CardDescription>Manage your account settings and preferences</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input 
-                id="username" 
-                placeholder="Your username" 
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={user?.email || ''} 
-                disabled 
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="avatarUrl">Avatar URL</Label>
-              <Input 
-                id="avatarUrl" 
-                placeholder="https://example.com/avatar.jpg" 
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea 
-                id="bio" 
-                placeholder="Tell us about yourself"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                rows={4}
-              />
-            </div>
-
-            <Button className="w-full" onClick={handleSave} disabled={loading}>
-              {loading ? 'Saving...' : 'Save Changes'}
-            </Button>
-
-            <Button variant="outline" className="w-full" onClick={() => signOut()}>
-              Sign Out
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Wallet Connection Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wallet className="w-5 h-5" />
-              Wallet for Tips
-            </CardTitle>
-            <CardDescription>
-              Connect your Movement wallet to receive $MOVE tips from your supporters
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {walletAddress ? (
-              <div className="space-y-4">
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-xs font-medium mb-1">Connected Wallet:</p>
-                  <p className="font-mono text-xs break-all opacity-75">
-                    {walletAddress}
-                  </p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => {
-                    setWalletAddress('');
-                    setShowWalletConnect(true);
-                  }}
+      {/* Two Column Layout */}
+      <div className="container mx-auto px-4 py-6 max-w-5xl">
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Left Sidebar - Navigation */}
+          <nav className="md:w-64 shrink-0">
+            <div className="bg-card rounded-2xl border border-border p-2 md:sticky md:top-24">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
+                    activeTab === tab.id
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
                 >
-                  Change Wallet
-                </Button>
-              </div>
-            ) : showWalletConnect ? (
-              connected && account ? (
-                <WalletVerification onVerified={handleWalletVerified} />
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Select a wallet to connect to Movement Network
-                  </p>
-                  <WalletSelectionModal onConnected={() => {}}>
-                    <Button className="w-full">
-                      <Wallet className="w-4 h-4 mr-2" />
-                      Select Wallet
+                  <tab.icon className="w-5 h-5" />
+                  <span className="font-medium">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {/* Right Content Area */}
+          <main className="flex-1 min-w-0">
+            <div className="bg-card rounded-2xl border border-border p-6 md:p-8">
+              {activeTab === 'profile' && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-foreground mb-2">Profile Settings</h2>
+                    <p className="text-muted-foreground">Manage your account settings and preferences</p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="username" className="text-sm font-medium">Username</Label>
+                      <Input 
+                        id="username" 
+                        placeholder="Your username" 
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="rounded-xl h-12 bg-background border-border"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        value={user?.email || ''} 
+                        disabled 
+                        className="rounded-xl h-12 bg-muted border-border opacity-60"
+                      />
+                      <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="avatarUrl" className="text-sm font-medium">Avatar URL</Label>
+                      <Input 
+                        id="avatarUrl" 
+                        placeholder="https://example.com/avatar.jpg" 
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                        className="rounded-xl h-12 bg-background border-border"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="bio" className="text-sm font-medium">Bio</Label>
+                      <Textarea 
+                        id="bio" 
+                        placeholder="Tell us about yourself"
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        rows={4}
+                        className="rounded-xl bg-background border-border resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
+                    <Button 
+                      onClick={handleSave} 
+                      disabled={loading}
+                      className="rounded-xl h-12 flex-1"
+                    >
+                      {loading ? 'Saving...' : 'Save Changes'}
                     </Button>
-                  </WalletSelectionModal>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full"
-                    onClick={() => setShowWalletConnect(false)}
-                  >
-                    Cancel
-                  </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => signOut()}
+                      className="rounded-xl h-12 sm:w-auto"
+                    >
+                      Sign Out
+                    </Button>
+                  </div>
                 </div>
-              )
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Connect and verify your wallet to start receiving tips. You'll need to sign a message to prove ownership.
-                </p>
-                <Button 
-                  className="w-full"
-                  onClick={() => setShowWalletConnect(true)}
-                >
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Connect Wallet to Receive Tips
-                </Button>
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Ensure the wallet provided is a Movement address to receive $MOVE tips
-            </p>
-          </CardContent>
-        </Card>
+              )}
+
+              {activeTab === 'tips' && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-foreground mb-2">Tips Settings</h2>
+                    <p className="text-muted-foreground">Connect your Movement wallet to receive $MOVE tips from your supporters</p>
+                  </div>
+
+                  <div className="space-y-6">
+                    {walletAddress ? (
+                      <div className="space-y-4">
+                        <div className="p-4 rounded-xl bg-muted/50 border border-border">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Wallet className="w-5 h-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">Wallet Connected</p>
+                              <p className="text-xs text-muted-foreground">Ready to receive tips</p>
+                            </div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-background border border-border">
+                            <p className="font-mono text-xs break-all text-muted-foreground">
+                              {walletAddress}
+                            </p>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          className="w-full rounded-xl h-12"
+                          onClick={() => {
+                            setWalletAddress('');
+                            setShowWalletConnect(true);
+                          }}
+                        >
+                          Change Wallet
+                        </Button>
+                      </div>
+                    ) : showWalletConnect ? (
+                      connected && account ? (
+                        <WalletVerification onVerified={handleWalletVerified} />
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
+                            <Wallet className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground mb-4">
+                              Select a wallet to connect to Movement Network
+                            </p>
+                            <WalletSelectionModal onConnected={() => {}}>
+                              <Button className="rounded-xl h-12">
+                                <Wallet className="w-4 h-4 mr-2" />
+                                Select Wallet
+                              </Button>
+                            </WalletSelectionModal>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            className="w-full rounded-xl h-12"
+                            onClick={() => setShowWalletConnect(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-6 rounded-xl bg-muted/50 border border-border text-center">
+                          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                            <Wallet className="w-8 h-8 text-primary" />
+                          </div>
+                          <h3 className="font-semibold text-foreground mb-2">Connect Your Wallet</h3>
+                          <p className="text-sm text-muted-foreground mb-6">
+                            Connect and verify your wallet to start receiving tips. You'll need to sign a message to prove ownership.
+                          </p>
+                          <Button 
+                            className="rounded-xl h-12"
+                            onClick={() => setShowWalletConnect(true)}
+                          >
+                            <Wallet className="w-4 h-4 mr-2" />
+                            Connect Wallet to Receive Tips
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-muted-foreground text-center">
+                      Ensure the wallet provided is a Movement address to receive $MOVE tips
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
       </div>
 
       <DockerNav onUploadClick={() => setIsUploadModalOpen(true)} />
