@@ -5,16 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Wallet } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
-import { usePrivyAuth } from '@/hooks/usePrivyAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { profile, signOut, refetchProfile } = usePrivyAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -23,35 +23,48 @@ const Settings = () => {
   const [avatarUrl, setAvatarUrl] = useState('');
 
   useEffect(() => {
-    if (profile) {
-      setUsername(profile.username || '');
-      setBio(profile.bio || '');
-      setAvatarUrl(profile.avatar_url || '');
+    if (user) {
+      fetchProfile();
     }
-  }, [profile]);
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    const { data, error } = await (supabase as any)
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (data) {
+      setUsername(data.username || '');
+      setBio(data.bio || '');
+      setAvatarUrl(data.avatar_url || '');
+    }
+  };
 
   const handleSave = async () => {
-    if (!profile) return;
+    if (!user) return;
 
     setLoading(true);
     try {
-      const response = await supabase.functions.invoke('update-profile', {
-        body: {
-          profile_id: profile.id,
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({
           username,
           bio,
           avatar_url: avatarUrl,
-        },
-      });
+        })
+        .eq('id', user.id);
 
-      if (response.error) throw response.error;
+      if (error) throw error;
 
       toast({
         title: "Success",
         description: "Profile updated successfully",
       });
       
-      refetchProfile();
       navigate('/profile');
     } catch (error: any) {
       toast({
@@ -104,17 +117,15 @@ const Settings = () => {
               />
             </div>
 
-            {profile?.wallet_address && (
-              <div className="space-y-2">
-                <Label>Wallet Address</Label>
-                <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-lg">
-                  <Wallet className="w-4 h-4 text-primary" />
-                  <span className="font-mono text-sm text-muted-foreground">
-                    {profile.wallet_address.slice(0, 8)}...{profile.wallet_address.slice(-6)}
-                  </span>
-                </div>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                value={user?.email || ''} 
+                disabled 
+              />
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="avatarUrl">Avatar URL</Label>

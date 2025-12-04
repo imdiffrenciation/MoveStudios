@@ -1,27 +1,27 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { usePrivyAuth } from './usePrivyAuth';
+import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
 export const useLikes = (mediaId: string) => {
-  const { profile } = usePrivyAuth();
+  const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (profile && mediaId) {
+    if (user && mediaId) {
       checkIfLiked();
     }
-  }, [profile, mediaId]);
+  }, [user, mediaId]);
 
   const checkIfLiked = async () => {
-    if (!profile) return;
+    if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('likes')
         .select('id')
-        .eq('user_id', profile.id)
+        .eq('user_id', user.id)
         .eq('media_id', mediaId)
         .maybeSingle();
 
@@ -33,26 +33,32 @@ export const useLikes = (mediaId: string) => {
   };
 
   const toggleLike = async () => {
-    if (!profile) {
+    if (!user) {
       toast.error('Please sign in to like posts');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await supabase.functions.invoke('toggle-like', {
-        body: {
-          user_id: profile.id,
-          media_id: mediaId,
-        },
-      });
+      if (isLiked) {
+        const { error } = await (supabase as any)
+          .from('likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('media_id', mediaId);
 
-      if (response.error) throw response.error;
-      
-      setIsLiked(response.data?.liked || false);
+        if (error) throw error;
+        setIsLiked(false);
+      } else {
+        const { error } = await (supabase as any)
+          .from('likes')
+          .insert({ user_id: user.id, media_id: mediaId });
+
+        if (error) throw error;
+        setIsLiked(true);
+      }
     } catch (error: any) {
-      console.error('Error toggling like:', error);
-      toast.error(error.message || 'Failed to toggle like');
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }

@@ -9,7 +9,7 @@ import MasonryGrid from '@/components/MasonryGrid';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import MediaModal from '@/components/MediaModal';
-import { usePrivyAuth } from '@/hooks/usePrivyAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useFollows } from '@/hooks/useFollows';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,9 +18,9 @@ import type { MediaItem } from '@/types';
 const Profile = () => {
   const navigate = useNavigate();
   const { userId } = useParams();
-  const { profile: currentUserProfile } = usePrivyAuth();
-  const profileUserId = userId || currentUserProfile?.id;
-  const isOwnProfile = !userId || userId === currentUserProfile?.id;
+  const { user } = useAuth();
+  const profileUserId = userId || user?.id;
+  const isOwnProfile = !userId || userId === user?.id;
   
   const { followersCount, followingCount, isFollowing: checkIsFollowing, followUser, unfollowUser } = useFollows(profileUserId);
   const [activeTab, setActiveTab] = useState('created');
@@ -38,15 +38,15 @@ const Profile = () => {
       fetchProfile();
       fetchUserMedia();
       fetchLikedMedia();
-      if (!isOwnProfile && currentUserProfile) {
+      if (!isOwnProfile && user) {
         checkFollowStatus();
       }
     }
-  }, [profileUserId, currentUserProfile]);
+  }, [profileUserId, user]);
 
   const checkFollowStatus = async () => {
-    if (!currentUserProfile || !profileUserId) return;
-    const following = await checkIsFollowing(profileUserId, currentUserProfile.id);
+    if (!user || !profileUserId) return;
+    const following = await checkIsFollowing(profileUserId, user.id);
     setIsFollowingUser(following);
   };
 
@@ -124,15 +124,15 @@ const Profile = () => {
   };
 
   const handleFollowToggle = async () => {
-    if (!currentUserProfile || !profileUserId) return;
+    if (!user || !profileUserId) return;
 
     try {
       if (isFollowingUser) {
-        await unfollowUser(profileUserId, currentUserProfile.id);
+        await unfollowUser(profileUserId, user.id);
         setIsFollowingUser(false);
         toast.success('Unfollowed');
       } else {
-        await followUser(profileUserId, currentUserProfile.id);
+        await followUser(profileUserId, user.id);
         setIsFollowingUser(true);
         toast.success('Following');
       }
@@ -168,7 +168,7 @@ const Profile = () => {
           )}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
             <Avatar className="w-20 h-20 sm:w-24 sm:h-24 ring-4 ring-primary flex-shrink-0">
-              <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id}`} />
+              <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`} />
               <AvatarFallback>{profile?.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
 

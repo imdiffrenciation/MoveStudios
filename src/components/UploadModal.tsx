@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { usePrivyAuth } from '@/hooks/usePrivyAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 interface UploadModalProps {
@@ -23,7 +23,7 @@ interface UploadModalProps {
 }
 
 const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
-  const { profile } = usePrivyAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>('');
@@ -75,14 +75,14 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !title.trim() || !profile) return;
+    if (!file || !title.trim() || !user) return;
 
     setIsUploading(true);
     
     try {
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('media')
@@ -95,19 +95,19 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
         .from('media')
         .getPublicUrl(fileName);
 
-      // Insert media record via edge function
-      const response = await supabase.functions.invoke('upload-media', {
-        body: {
-          user_id: profile.id,
+      // Insert media record
+      const { error: insertError } = await supabase
+        .from('media')
+        .insert({
+          user_id: user.id,
           type: file.type.startsWith('video/') ? 'video' : 'image',
           url: publicUrl,
           title: title.trim(),
           description: description.trim() || null,
           tags: tags.length > 0 ? tags : null,
-        },
-      });
+        });
 
-      if (response.error) throw response.error;
+      if (insertError) throw insertError;
 
       toast({
         title: 'Upload successful!',
