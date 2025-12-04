@@ -1,27 +1,27 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { usePrivyAuth } from './usePrivyAuth';
 import { toast } from 'sonner';
 
 export const useLikes = (mediaId: string) => {
-  const { user } = useAuth();
+  const { profile } = usePrivyAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user && mediaId) {
+    if (profile && mediaId) {
       checkIfLiked();
     }
-  }, [user, mediaId]);
+  }, [profile, mediaId]);
 
   const checkIfLiked = async () => {
-    if (!user) return;
+    if (!profile) return;
 
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('likes')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', profile.id)
         .eq('media_id', mediaId)
         .maybeSingle();
 
@@ -33,7 +33,7 @@ export const useLikes = (mediaId: string) => {
   };
 
   const toggleLike = async () => {
-    if (!user) {
+    if (!profile) {
       toast.error('Please sign in to like posts');
       return;
     }
@@ -41,18 +41,18 @@ export const useLikes = (mediaId: string) => {
     setLoading(true);
     try {
       if (isLiked) {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('likes')
           .delete()
-          .eq('user_id', user.id)
+          .eq('user_id', profile.id)
           .eq('media_id', mediaId);
 
         if (error) throw error;
         setIsLiked(false);
       } else {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('likes')
-          .insert({ user_id: user.id, media_id: mediaId });
+          .insert({ user_id: profile.id, media_id: mediaId });
 
         if (error) throw error;
         setIsLiked(true);

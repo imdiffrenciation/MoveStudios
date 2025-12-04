@@ -5,16 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Wallet } from 'lucide-react';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
-import { useAuth } from '@/hooks/useAuth';
+import { usePrivyAuth } from '@/hooks/usePrivyAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { profile, signOut, refetchProfile } = usePrivyAuth();
   const { toast } = useToast();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -23,40 +23,26 @@ const Settings = () => {
   const [avatarUrl, setAvatarUrl] = useState('');
 
   useEffect(() => {
-    if (user) {
-      fetchProfile();
+    if (profile) {
+      setUsername(profile.username || '');
+      setBio(profile.bio || '');
+      setAvatarUrl(profile.avatar_url || '');
     }
-  }, [user]);
-
-  const fetchProfile = async () => {
-    if (!user) return;
-
-    const { data, error } = await (supabase as any)
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (data) {
-      setUsername(data.username || '');
-      setBio(data.bio || '');
-      setAvatarUrl(data.avatar_url || '');
-    }
-  };
+  }, [profile]);
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!profile) return;
 
     setLoading(true);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('profiles')
         .update({
           username,
           bio,
           avatar_url: avatarUrl,
         })
-        .eq('id', user.id);
+        .eq('id', profile.id);
 
       if (error) throw error;
 
@@ -65,6 +51,7 @@ const Settings = () => {
         description: "Profile updated successfully",
       });
       
+      refetchProfile();
       navigate('/profile');
     } catch (error: any) {
       toast({
@@ -117,15 +104,17 @@ const Settings = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={user?.email || ''} 
-                disabled 
-              />
-            </div>
+            {profile?.wallet_address && (
+              <div className="space-y-2">
+                <Label>Wallet Address</Label>
+                <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-lg">
+                  <Wallet className="w-4 h-4 text-primary" />
+                  <span className="font-mono text-sm text-muted-foreground">
+                    {profile.wallet_address.slice(0, 8)}...{profile.wallet_address.slice(-6)}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="avatarUrl">Avatar URL</Label>
