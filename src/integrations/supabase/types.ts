@@ -143,7 +143,8 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
-          privy_user_id: string
+          id: string
+          privy_user_id: string | null
           updated_at: string
           username: string
           wallet_address: string | null
@@ -152,7 +153,8 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
-          privy_user_id: string
+          id: string
+          privy_user_id?: string | null
           updated_at?: string
           username: string
           wallet_address?: string | null
@@ -161,7 +163,8 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
-          privy_user_id?: string
+          id?: string
+          privy_user_id?: string | null
           updated_at?: string
           username?: string
           wallet_address?: string | null
