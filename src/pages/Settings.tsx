@@ -21,6 +21,7 @@ const Settings = () => {
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [walletAddress, setWalletAddress] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -41,6 +42,7 @@ const Settings = () => {
       setUsername(data.username || '');
       setBio(data.bio || '');
       setAvatarUrl(data.avatar_url || '');
+      setWalletAddress(data.wallet_address || '');
     }
   };
 
@@ -55,6 +57,7 @@ const Settings = () => {
           username,
           bio,
           avatar_url: avatarUrl,
+          wallet_address: walletAddress,
         })
         .eq('id', user.id);
 
@@ -135,6 +138,19 @@ const Settings = () => {
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="walletAddress">Wallet Address (for Tips)</Label>
+              <Input 
+                id="walletAddress" 
+                placeholder="0x..." 
+                value={walletAddress}
+                onChange={(e) => setWalletAddress(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Ensure the wallet provided is a Movement address to receive $MOVE tips
+              </p>
             </div>
 
             <div className="space-y-2">
