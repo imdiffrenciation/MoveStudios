@@ -1,0 +1,68 @@
+{
+  "address": "0xa82655afd873cdf5e35d2dfa6ab6def067c3b5407ba3f61d32dc41b91ed66955",
+  "name": "tipping",
+  "friends": [],
+  "exposed_functions": [
+    {
+      "name": "get_stats",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": ["address"],
+      "return": ["u64", "u64"]
+    },
+    {
+      "name": "initialize_stats",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": ["&signer"],
+      "return": []
+    },
+    {
+      "name": "stats_exist",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": ["address"],
+      "return": ["bool"]
+    },
+    {
+      "name": "tip",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": ["&signer", "address", "u64"],
+      "return": []
+    }
+  ],
+  "structs": [
+    {
+      "name": "TipEvent",
+      "is_native": false,
+      "is_event": true,
+      "abilities": ["drop", "store"],
+      "generic_type_params": [],
+      "fields": [
+        { "name": "amount", "type": "u64" },
+        { "name": "sender", "type": "address" },
+        { "name": "receiver", "type": "address" }
+      ]
+    },
+    {
+      "name": "TipStats",
+      "is_native": false,
+      "is_event": false,
+      "abilities": ["key"],
+      "generic_type_params": [],
+      "fields": [
+        { "name": "tips_sent", "type": "u64" },
+        { "name": "tips_received", "type": "u64" }
+      ]
+    }
+  ]
+}
