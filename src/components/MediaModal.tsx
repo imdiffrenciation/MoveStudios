@@ -10,6 +10,7 @@ import { useSaves } from '@/hooks/useSaves';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
 import { useComments } from '@/hooks/useComments';
+import { useTipStats } from '@/hooks/useTipStats';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +32,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
   const { isSaved, toggleSave, loading: saveLoading } = useSaves(currentMedia?.id || '');
   const { isFollowing } = useFollows(user?.id);
   const { comments, loading: commentsLoading, addComment } = useComments(currentMedia?.id || null);
+  const { refreshStats: refreshUserTipStats } = useTipStats(user?.id);
   const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const [isFollowingCreator, setIsFollowingCreator] = useState(false);
@@ -425,7 +427,9 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
           creatorName={currentMedia.creator}
           creatorWalletAddress={currentMedia.creatorWalletAddress}
           onTip={(amount) => {
-            console.log(`Tip amount: ${amount} $MOVE`);
+            // Refresh tip stats after successful tip
+            refreshUserTipStats();
+            console.log(`Tip sent: ${amount} $MOVE`);
           }}
         />
       </DialogContent>
