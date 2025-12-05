@@ -123,18 +123,19 @@ export const useTipping = () => {
       // Convert tip amount to octas
       const tipAmountOctas = Math.floor(tipAmount * OCTAS_PER_MOVE);
 
-      // Build and submit the transaction using wallet adapter
+      // Build and submit the transaction using legacy payload format for Nightly wallet
       // Note: Do NOT include sender - wallet provides signer automatically
-      const response = await signAndSubmitTransaction({
-        data: {
-          function: `${CONTRACT_ADDRESS}::${MODULE_NAME}::tip`,
-          typeArguments: [],
-          functionArguments: [
-            receiverWalletAddress,
-            tipAmountOctas.toString()
-          ]
-        }
-      });
+      const payload = {
+        type: "entry_function_payload" as const,
+        function: `${CONTRACT_ADDRESS}::${MODULE_NAME}::tip`,
+        type_arguments: [],
+        arguments: [
+          receiverWalletAddress,
+          tipAmountOctas.toString()
+        ]
+      };
+
+      const response = await signAndSubmitTransaction(payload as any);
 
       // Wait for transaction confirmation
       const txResult = await aptos.waitForTransaction({
