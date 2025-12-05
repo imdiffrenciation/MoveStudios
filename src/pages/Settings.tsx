@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, User, Wallet } from 'lucide-react';
+import { ArrowLeft, User, Wallet, DollarSign } from 'lucide-react';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,6 +28,7 @@ const Settings = () => {
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
+  const [defaultTipAmount, setDefaultTipAmount] = useState<number>(1);
   const [showWalletConnect, setShowWalletConnect] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
@@ -51,6 +52,7 @@ const Settings = () => {
       setBio(data.bio || '');
       setAvatarUrl(data.avatar_url || '');
       setWalletAddress(data.wallet_address || '');
+      setDefaultTipAmount(data.default_tip_amount || 1);
     }
   };
 
@@ -66,6 +68,7 @@ const Settings = () => {
           bio,
           avatar_url: avatarUrl,
           wallet_address: walletAddress,
+          default_tip_amount: defaultTipAmount,
         })
         .eq('id', user.id);
 
@@ -324,8 +327,36 @@ const Settings = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Default Tip Amount */}
+                    <div className="pt-6 border-t border-border space-y-4">
+                      <div>
+                        <h3 className="font-semibold text-foreground mb-2">Default Tip Amount</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Set your default tip amount for quick tipping
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-3">
+                        {[1, 5, 10, 25, 50, 100].map((amount) => (
+                          <Button
+                            key={amount}
+                            variant={defaultTipAmount === amount ? "default" : "outline"}
+                            className="h-12 rounded-xl font-semibold"
+                            onClick={() => setDefaultTipAmount(amount)}
+                          >
+                            <DollarSign className="w-4 h-4 mr-1" />
+                            {amount}
+                          </Button>
+                        ))}
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground">
+                        Selected: {defaultTipAmount} $MOVE
+                      </p>
+                    </div>
                     
-                    <p className="text-xs text-muted-foreground text-center">
+                    <p className="text-xs text-muted-foreground text-center pt-4">
                       Ensure the wallet provided is a Movement address to receive $MOVE tips
                     </p>
                   </div>

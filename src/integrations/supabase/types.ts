@@ -143,6 +143,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          default_tip_amount: number | null
           id: string
           privy_user_id: string | null
           updated_at: string
@@ -153,6 +154,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          default_tip_amount?: number | null
           id: string
           privy_user_id?: string | null
           updated_at?: string
@@ -163,6 +165,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          default_tip_amount?: number | null
           id?: string
           privy_user_id?: string | null
           updated_at?: string
