@@ -104,7 +104,10 @@ export const useTipping = () => {
     receiverWalletAddress: string,
     tipAmount: number
   ): Promise<{ success: boolean; hash?: string; error?: string }> => {
+    console.log('tipCreator called with:', { receiverWalletAddress, tipAmount, connected, account: account?.address?.toString() });
+    
     if (!connected || !account) {
+      console.log('Wallet not connected - connected:', connected, 'account:', account);
       return { success: false, error: 'Wallet not connected' };
     }
 
@@ -112,9 +115,13 @@ export const useTipping = () => {
 
     try {
       const senderAddress = account.address.toString();
+      console.log('Sender address:', senderAddress);
       
       // Check if sender can afford the tip
+      console.log('Checking balance...');
       const canAfford = await canTipAmount(senderAddress, tipAmount);
+      console.log('Can afford:', canAfford);
+      
       if (!canAfford) {
         setLoading(false);
         return { success: false, error: 'Insufficient balance for this tip amount' };
@@ -122,6 +129,7 @@ export const useTipping = () => {
 
       // Convert tip amount to octas
       const tipAmountOctas = Math.floor(tipAmount * OCTAS_PER_MOVE);
+      console.log('Tip amount in octas:', tipAmountOctas);
 
       // Build and submit the transaction using legacy payload format for Nightly wallet
       // Note: Do NOT include sender - wallet provides signer automatically
@@ -134,23 +142,30 @@ export const useTipping = () => {
           tipAmountOctas.toString()
         ]
       };
+      
+      console.log('Transaction payload:', JSON.stringify(payload, null, 2));
 
+      console.log('Calling signAndSubmitTransaction...');
       const response = await signAndSubmitTransaction(payload as any);
+      console.log('Transaction response:', response);
 
       // Wait for transaction confirmation
+      console.log('Waiting for transaction confirmation...');
       const txResult = await aptos.waitForTransaction({
         transactionHash: response.hash,
       });
+      console.log('Transaction result:', txResult);
 
       if (txResult.success) {
         setLoading(false);
         return { success: true, hash: response.hash };
       } else {
         setLoading(false);
-        return { success: false, error: 'Transaction failed' };
+        return { success: false, error: 'Transaction failed on chain' };
       }
     } catch (error: any) {
       console.error('Tip transaction error:', error);
+      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       setLoading(false);
       
       // Handle user rejection
