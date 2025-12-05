@@ -124,11 +124,16 @@ export const useTipping = () => {
       const tipAmountOctas = Math.floor(tipAmount * OCTAS_PER_MOVE);
 
       // Build and submit the transaction using wallet adapter
+      // Note: Do NOT include sender - wallet provides signer automatically
       const response = await signAndSubmitTransaction({
         data: {
           function: `${CONTRACT_ADDRESS}::${MODULE_NAME}::tip`,
-          functionArguments: [receiverWalletAddress, tipAmountOctas],
-        },
+          typeArguments: [],
+          functionArguments: [
+            receiverWalletAddress,
+            tipAmountOctas.toString()
+          ]
+        }
       });
 
       // Wait for transaction confirmation
