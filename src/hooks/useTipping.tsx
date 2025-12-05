@@ -99,6 +99,50 @@ export const useTipping = () => {
     }
   }, []);
 
+  // Initialize stats for the connected wallet
+  const initializeStats = useCallback(async (): Promise<{ success: boolean; hash?: string; error?: string }> => {
+    console.log('initializeStats called', { connected, account: account?.address?.toString() });
+    
+    if (!connected || !account) {
+      return { success: false, error: 'Wallet not connected' };
+    }
+
+    try {
+      const functionName = `${CONTRACT_ADDRESS}::${MODULE_NAME}::initialize_stats`;
+      console.log('Initializing stats with function:', functionName);
+
+      const payload = {
+        data: {
+          function: functionName as `${string}::${string}::${string}`,
+          typeArguments: [],
+          functionArguments: []
+        }
+      };
+
+      console.log('Init stats payload:', JSON.stringify(payload, null, 2));
+
+      const response = await signAndSubmitTransaction(payload as any);
+      console.log('Init stats response:', response);
+
+      const txResult = await aptos.waitForTransaction({
+        transactionHash: response.hash,
+      });
+
+      if (txResult.success) {
+        return { success: true, hash: response.hash };
+      } else {
+        return { success: false, error: 'Initialize stats transaction failed' };
+      }
+    } catch (error: any) {
+      console.error('Initialize stats error:', error);
+      // If stats already exist, that's fine
+      if (error.message?.includes('already exists') || error.message?.includes('RESOURCE_ALREADY_EXISTS')) {
+        return { success: true };
+      }
+      return { success: false, error: error.message || 'Failed to initialize stats' };
+    }
+  }, [connected, account, signAndSubmitTransaction]);
+
   // Main tip function
   const tipCreator = useCallback(async (
     receiverWalletAddress: string,
@@ -183,6 +227,7 @@ export const useTipping = () => {
 
   return {
     tipCreator,
+    initializeStats,
     getTipStats,
     canTipAmount,
     getSenderWalletAddress,

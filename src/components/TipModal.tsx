@@ -19,7 +19,7 @@ const tipAmounts = [1, 5, 10, 25, 50, 100];
 
 const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }: TipModalProps) => {
   const { user } = useAuth();
-  const { tipCreator, canTipAmount, loading: tippingLoading, connected, walletAddress } = useTipping();
+  const { tipCreator, initializeStats, canTipAmount, loading: tippingLoading, connected, walletAddress } = useTipping();
   const [selectedAmount, setSelectedAmount] = useState<number>(1);
   const [defaultTipAmount, setDefaultTipAmount] = useState<number | null>(null);
   const [checkingBalance, setCheckingBalance] = useState(false);
@@ -94,6 +94,10 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
       return;
     }
 
+    // Initialize stats first (will be skipped if already initialized)
+    console.log('Initializing stats before tip...');
+    await initializeStats();
+    
     const result = await tipCreator(creatorWalletAddress, selectedAmount);
 
     if (result.success) {
