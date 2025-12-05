@@ -116,6 +116,10 @@ export const useTipping = () => {
           function: functionName as `${string}::${string}::${string}`,
           typeArguments: [],
           functionArguments: []
+        },
+        options: {
+          maxGasAmount: 2000,
+          gasUnitPrice: 100
         }
       };
 
@@ -188,6 +192,10 @@ export const useTipping = () => {
           function: functionName,
           typeArguments: [],
           functionArguments: [receiverWalletAddress, tipAmountOctas.toString()]
+        },
+        options: {
+          maxGasAmount: 2000,
+          gasUnitPrice: 100
         }
       };
       
