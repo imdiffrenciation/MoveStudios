@@ -76,6 +76,20 @@ export const useTipping = () => {
     }
   }, []);
 
+  // Check if stats exist for an address
+  const checkStatsExist = useCallback(async (walletAddress: string): Promise<boolean> => {
+    try {
+      const resources = await aptos.getAccountResources({ accountAddress: walletAddress });
+      const tipStatsResource = resources.find(
+        (r: any) => r.type === `${CONTRACT_ADDRESS}::${MODULE_NAME}::TipStats`
+      );
+      return !!tipStatsResource;
+    } catch (error) {
+      console.error('Error checking stats existence:', error);
+      return false;
+    }
+  }, []);
+
   // Get tip stats from on-chain resources
   const getTipStats = useCallback(async (walletAddress: string): Promise<TipStats> => {
     try {
@@ -161,6 +175,16 @@ export const useTipping = () => {
       const senderAddress = account.address.toString();
       console.log('Sender address:', senderAddress);
       
+      // Check if receiver has initialized stats (required for tipping)
+      console.log('Checking if receiver has initialized stats...');
+      const receiverHasStats = await checkStatsExist(receiverWalletAddress);
+      console.log('Receiver has stats:', receiverHasStats);
+      
+      if (!receiverHasStats) {
+        setLoading(false);
+        return { success: false, error: 'Creator has not initialized their tipping account yet. They need to connect their wallet in Settings first.' };
+      }
+      
       // Check if sender can afford the tip
       console.log('Checking balance...');
       const canAfford = await canTipAmount(senderAddress, tipAmount);
@@ -223,12 +247,13 @@ export const useTipping = () => {
       
       return { success: false, error: error.message || 'Transaction failed' };
     }
-  }, [connected, account, signAndSubmitTransaction, canTipAmount]);
+  }, [connected, account, signAndSubmitTransaction, canTipAmount, checkStatsExist]);
 
   return {
     tipCreator,
     initializeStats,
     getTipStats,
+    checkStatsExist,
     canTipAmount,
     getSenderWalletAddress,
     getReceiverWalletAddress,
