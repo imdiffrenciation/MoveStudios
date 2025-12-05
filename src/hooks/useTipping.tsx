@@ -138,13 +138,13 @@ export const useTipping = () => {
       console.log('Receiver:', receiverWalletAddress);
       console.log('Amount:', tipAmountOctas.toString());
 
-      // Build and submit the transaction using legacy payload format for Nightly wallet
-      // Note: Do NOT include sender - wallet provides signer automatically
+      // Build transaction using the newer wallet adapter format with data wrapper
       const payload = {
-        type: "entry_function_payload",
-        function: functionName,
-        type_arguments: [],
-        arguments: [receiverWalletAddress, tipAmountOctas.toString()]
+        data: {
+          function: functionName,
+          typeArguments: [],
+          functionArguments: [receiverWalletAddress, tipAmountOctas.toString()]
+        }
       };
       
       console.log('Transaction payload:', JSON.stringify(payload, null, 2));
