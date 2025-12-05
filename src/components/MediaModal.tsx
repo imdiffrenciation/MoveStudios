@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import TipModal from './TipModal';
 
 interface MediaModalProps {
   media: MediaItem | null;
@@ -36,6 +37,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
   const [followLoading, setFollowLoading] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
+  const [showTipModal, setShowTipModal] = useState(false);
 
   // Update currentMedia when media prop changes
   useEffect(() => {
@@ -249,7 +251,12 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                   <MessageCircle className="w-4 h-4" />
                   {comments.length}
                 </Button>
-                <Button variant="outline" size="sm" className="gap-2 rounded-full">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2 rounded-full"
+                  onClick={() => setShowTipModal(true)}
+                >
                   <DollarSign className="w-4 h-4" />
                   Tip
                 </Button>
@@ -410,6 +417,17 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
             </div>
           </div>
         </ScrollArea>
+
+        {/* Tip Modal */}
+        <TipModal
+          isOpen={showTipModal}
+          onClose={() => setShowTipModal(false)}
+          creatorName={currentMedia.creator}
+          creatorWalletAddress={currentMedia.creatorWalletAddress}
+          onTip={(amount) => {
+            console.log(`Tip amount: ${amount} $MOVE`);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
