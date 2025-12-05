@@ -11,6 +11,7 @@ import UploadModal from '@/components/UploadModal';
 import MediaModal from '@/components/MediaModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollows } from '@/hooks/useFollows';
+import { useTipStats } from '@/hooks/useTipStats';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { MediaItem } from '@/types';
@@ -23,6 +24,7 @@ const Profile = () => {
   const isOwnProfile = !userId || userId === user?.id;
   
   const { followersCount, followingCount, isFollowing: checkIsFollowing, followUser, unfollowUser } = useFollows(profileUserId);
+  const { tipsSent, tipsReceived, refreshStats: refreshTipStats } = useTipStats(profileUserId);
   const [activeTab, setActiveTab] = useState('created');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [userMedia, setUserMedia] = useState<MediaItem[]>([]);
@@ -31,8 +33,6 @@ const Profile = () => {
   const [profile, setProfile] = useState<any>(null);
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
-  const [tipsSent] = useState(0);
-  const [tipsReceived] = useState(0);
 
   useEffect(() => {
     if (profileUserId) {
