@@ -9,10 +9,10 @@ interface WalletProviderProps {
 }
 
 export function WalletProvider({ children }: WalletProviderProps) {
-  // Movement Mainnet configuration
+  // Movement Testnet configuration
   const aptosConfig = new AptosConfig({
-    network: Network.MAINNET,
-    fullnode: "https://full.mainnet.movementinfra.xyz/v1",
+    network: Network.CUSTOM,
+    fullnode: "https://testnet.movementnetwork.xyz/v1",
   });
   
   return (

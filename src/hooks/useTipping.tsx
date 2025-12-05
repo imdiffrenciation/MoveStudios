@@ -8,10 +8,10 @@ import { toast } from '@/hooks/use-toast';
 const CONTRACT_ADDRESS = '0xa82655afd873cdf5e35d2dfa6ab6def067c3b5407ba3f61d32dc41b91ed66955';
 const MODULE_NAME = 'tipping';
 
-// Movement Mainnet configuration
+// Movement Testnet configuration
 const aptosConfig = new AptosConfig({
   network: Network.CUSTOM,
-  fullnode: 'https://full.mainnet.movementinfra.xyz/v1',
+  fullnode: 'https://testnet.movementnetwork.xyz/v1',
 });
 
 const aptos = new Aptos(aptosConfig);
