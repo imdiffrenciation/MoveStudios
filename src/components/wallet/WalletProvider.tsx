@@ -2,23 +2,20 @@
 
 import { ReactNode } from "react";
 import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
-import { AptosConfig, Network } from "@aptos-labs/ts-sdk";
+import { Network } from "@aptos-labs/ts-sdk";
 
 interface WalletProviderProps {
   children: ReactNode;
 }
 
 export function WalletProvider({ children }: WalletProviderProps) {
-  // Movement Testnet configuration
-  const aptosConfig = new AptosConfig({
-    network: Network.CUSTOM,
-    fullnode: "https://testnet.movementnetwork.xyz/v1",
-  });
-  
   return (
     <AptosWalletAdapterProvider
       autoConnect={true}
-      dappConfig={aptosConfig}
+      dappConfig={{
+        network: Network.CUSTOM,
+        aptosConnect: undefined, // Disable AptosConnect (Google/Apple) wallets
+      }}
       onError={(error) => {
         console.error("Wallet error:", JSON.stringify(error, null, 2));
       }}
