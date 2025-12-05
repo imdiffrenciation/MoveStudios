@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { Aptos, AptosConfig, Network } from '@aptos-labs/ts-sdk';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,10 +8,11 @@ import { toast } from '@/hooks/use-toast';
 const CONTRACT_ADDRESS = '0xa82655afd873cdf5e35d2dfa6ab6def067c3b5407ba3f61d32dc41b91ed66955';
 const MODULE_NAME = 'tipping';
 
-// Movement Testnet configuration
+// Movement Testnet configuration - contract is deployed here
+const MOVEMENT_TESTNET_URL = 'https://testnet.movementnetwork.xyz/v1';
 const aptosConfig = new AptosConfig({
   network: Network.CUSTOM,
-  fullnode: 'https://testnet.movementnetwork.xyz/v1',
+  fullnode: MOVEMENT_TESTNET_URL,
 });
 
 const aptos = new Aptos(aptosConfig);
@@ -25,8 +26,28 @@ export interface TipStats {
 }
 
 export const useTipping = () => {
-  const { account, signAndSubmitTransaction, connected } = useWallet();
+  const { account, signAndSubmitTransaction, connected, network } = useWallet();
   const [loading, setLoading] = useState(false);
+  const [networkError, setNetworkError] = useState<string | null>(null);
+
+  // Check if wallet is on correct network (Movement Testnet)
+  useEffect(() => {
+    if (connected && network) {
+      console.log('Connected wallet network:', network);
+      // Movement Testnet has a specific chain ID or URL pattern
+      // If wallet is on mainnet, show error
+      const networkUrl = network.url?.toLowerCase() || '';
+      const networkName = network.name?.toLowerCase() || '';
+      
+      if (networkUrl.includes('mainnet') || networkName.includes('mainnet')) {
+        setNetworkError('Your wallet is connected to Mainnet. Please switch to Movement Testnet in your wallet settings.');
+      } else {
+        setNetworkError(null);
+      }
+    } else {
+      setNetworkError(null);
+    }
+  }, [connected, network]);
 
   // Get sender wallet address from Supabase
   const getSenderWalletAddress = useCallback(async (userId: string): Promise<string | null> => {
@@ -101,10 +122,14 @@ export const useTipping = () => {
 
   // Initialize stats for the connected wallet
   const initializeStats = useCallback(async (): Promise<{ success: boolean; hash?: string; error?: string }> => {
-    console.log('initializeStats called', { connected, account: account?.address?.toString() });
+    console.log('initializeStats called', { connected, account: account?.address?.toString(), network });
     
     if (!connected || !account) {
       return { success: false, error: 'Wallet not connected' };
+    }
+
+    if (networkError) {
+      return { success: false, error: networkError };
     }
 
     try {
@@ -141,18 +166,22 @@ export const useTipping = () => {
       }
       return { success: false, error: error.message || 'Failed to initialize stats' };
     }
-  }, [connected, account, signAndSubmitTransaction]);
+  }, [connected, account, signAndSubmitTransaction, networkError]);
 
   // Main tip function
   const tipCreator = useCallback(async (
     receiverWalletAddress: string,
     tipAmount: number
   ): Promise<{ success: boolean; hash?: string; error?: string }> => {
-    console.log('tipCreator called with:', { receiverWalletAddress, tipAmount, connected, account: account?.address?.toString() });
+    console.log('tipCreator called with:', { receiverWalletAddress, tipAmount, connected, account: account?.address?.toString(), network });
     
     if (!connected || !account) {
       console.log('Wallet not connected - connected:', connected, 'account:', account);
       return { success: false, error: 'Wallet not connected' };
+    }
+
+    if (networkError) {
+      return { success: false, error: networkError };
     }
 
     setLoading(true);
@@ -223,7 +252,7 @@ export const useTipping = () => {
       
       return { success: false, error: error.message || 'Transaction failed' };
     }
-  }, [connected, account, signAndSubmitTransaction, canTipAmount]);
+  }, [connected, account, signAndSubmitTransaction, canTipAmount, networkError]);
 
   return {
     tipCreator,
@@ -235,5 +264,6 @@ export const useTipping = () => {
     loading,
     connected,
     walletAddress: account?.address?.toString(),
+    networkError,
   };
 };
