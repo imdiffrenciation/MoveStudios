@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
+import { Network } from "@aptos-labs/ts-sdk";
 
 interface WalletProviderProps {
   children: ReactNode;
@@ -12,6 +13,9 @@ export function WalletProvider({ children }: WalletProviderProps) {
     <AptosWalletAdapterProvider
       autoConnect={true}
       optInWallets={["Nightly", "Pontem Wallet", "Petra"]}
+      dappConfig={{
+        network: Network.CUSTOM,
+      }}
       onError={(error) => {
         console.error("Wallet error:", JSON.stringify(error, null, 2));
       }}
