@@ -56,26 +56,23 @@ export const useTipping = () => {
     return data.wallet_address;
   }, []);
 
-  // Check if user can afford the tip amount
+  // Check if user can afford the tip amount using account balance API
   const canTipAmount = useCallback(async (senderAddress: string, tipAmount: number): Promise<boolean> => {
     try {
       const tipAmountOctas = BigInt(tipAmount * OCTAS_PER_MOVE);
       
-      // Get account balance
-      const resources = await aptos.getAccountResources({ accountAddress: senderAddress });
-      const coinResource = resources.find(
-        (r: any) => r.type === '0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>'
-      );
+      // Use getAccountCoinAmount for Movement network native coin
+      const balance = await aptos.getAccountCoinAmount({
+        accountAddress: senderAddress,
+        coinType: "0x1::aptos_coin::AptosCoin"
+      });
 
-      if (!coinResource) {
-        return false;
-      }
-
-      const balance = BigInt((coinResource.data as any).coin.value);
-      return balance >= tipAmountOctas;
+      return BigInt(balance) >= tipAmountOctas;
     } catch (error) {
       console.error('Error checking balance:', error);
-      return false;
+      // If we can't check balance, let the transaction try anyway
+      // The contract will fail if balance is insufficient
+      return true;
     }
   }, []);
 
