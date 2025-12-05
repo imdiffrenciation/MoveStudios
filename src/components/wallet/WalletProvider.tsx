@@ -11,7 +11,7 @@ interface WalletProviderProps {
 export function WalletProvider({ children }: WalletProviderProps) {
   return (
     <AptosWalletAdapterProvider
-      autoConnect={false}
+      autoConnect={true}
       optInWallets={["Nightly", "Pontem Wallet", "Petra"]}
       onError={(error) => {
         console.error("Wallet error:", JSON.stringify(error, null, 2));
