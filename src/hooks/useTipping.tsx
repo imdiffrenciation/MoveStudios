@@ -131,16 +131,20 @@ export const useTipping = () => {
       const tipAmountOctas = Math.floor(tipAmount * OCTAS_PER_MOVE);
       console.log('Tip amount in octas:', tipAmountOctas);
 
+      // Build the function name explicitly to avoid any encoding issues
+      const functionName = "0xa82655afd873cdf5e35d2dfa6ab6def067c3b5407ba3f61d32dc41b91ed66955::tipping::tip";
+      
+      console.log('Function name:', functionName);
+      console.log('Receiver:', receiverWalletAddress);
+      console.log('Amount:', tipAmountOctas.toString());
+
       // Build and submit the transaction using legacy payload format for Nightly wallet
       // Note: Do NOT include sender - wallet provides signer automatically
       const payload = {
-        type: "entry_function_payload" as const,
-        function: `${CONTRACT_ADDRESS}::${MODULE_NAME}::tip`,
+        type: "entry_function_payload",
+        function: functionName,
         type_arguments: [],
-        arguments: [
-          receiverWalletAddress,
-          tipAmountOctas.toString()
-        ]
+        arguments: [receiverWalletAddress, tipAmountOctas.toString()]
       };
       
       console.log('Transaction payload:', JSON.stringify(payload, null, 2));
