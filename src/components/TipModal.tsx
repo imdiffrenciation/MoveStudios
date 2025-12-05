@@ -1,11 +1,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Loader2, Wallet, ExternalLink } from 'lucide-react';
+import { DollarSign, Loader2, Wallet } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTipping } from '@/hooks/useTipping';
 import { toast } from '@/hooks/use-toast';
+import { WalletSelectionModal } from '@/components/wallet/WalletSelectionModal';
 
 interface TipModalProps {
   isOpen: boolean;
@@ -79,7 +80,7 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
     if (!connected) {
       toast({
         title: "Wallet not connected",
-        description: "Please connect your wallet in Settings to send tips.",
+        description: "Please connect your wallet first using the button above.",
         variant: "destructive",
       });
       return;
@@ -96,7 +97,17 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
 
     // Initialize stats first (will be skipped if already initialized)
     console.log('Initializing stats before tip...');
-    await initializeStats();
+    const initResult = await initializeStats();
+    console.log('Init stats result:', initResult);
+    
+    if (!initResult.success && !initResult.error?.includes('already exists')) {
+      toast({
+        title: "Setup failed",
+        description: initResult.error || "Failed to initialize tipping. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const result = await tipCreator(creatorWalletAddress, selectedAmount);
 
@@ -110,10 +121,17 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
     } else {
       toast({
         title: "Tip failed",
-        description: result.error || "Something went wrong",
+        description: result.error || "Something went wrong. Check console for details.",
         variant: "destructive",
       });
     }
+  };
+
+  const handleWalletConnected = () => {
+    toast({
+      title: "Wallet connected",
+      description: "You can now send tips!",
+    });
   };
 
   const isDisabled = tippingLoading || !creatorWalletAddress || !connected || canAfford === false || checkingBalance;
@@ -132,8 +150,22 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
           {!connected && (
             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
               <Wallet className="w-5 h-5 mx-auto mb-2 text-amber-500" />
-              <p className="text-sm text-amber-500">
-                Connect your wallet in Settings to send tips
+              <p className="text-sm text-amber-500 mb-3">
+                Connect your wallet to send tips
+              </p>
+              <WalletSelectionModal onConnected={handleWalletConnected}>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Wallet className="w-4 h-4" />
+                  Connect Wallet
+                </Button>
+              </WalletSelectionModal>
+            </div>
+          )}
+
+          {connected && (
+            <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
+              <p className="text-xs text-green-500">
+                Wallet connected: {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
               </p>
             </div>
           )}
@@ -146,7 +178,6 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
                 variant={selectedAmount === amount ? "default" : "outline"}
                 className="h-14 rounded-xl text-lg font-semibold"
                 onClick={() => setSelectedAmount(amount)}
-                disabled={!connected}
               >
                 {amount}
               </Button>
