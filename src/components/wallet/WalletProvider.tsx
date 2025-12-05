@@ -11,11 +11,8 @@ interface WalletProviderProps {
 export function WalletProvider({ children }: WalletProviderProps) {
   return (
     <AptosWalletAdapterProvider
-      autoConnect={true}
+      autoConnect={false}
       optInWallets={["Nightly", "Pontem Wallet", "Petra"]}
-      dappConfig={{
-        network: Network.CUSTOM,
-      }}
       onError={(error) => {
         console.error("Wallet error:", JSON.stringify(error, null, 2));
       }}
