@@ -9,12 +9,14 @@ interface WalletProviderProps {
 }
 
 export function WalletProvider({ children }: WalletProviderProps) {
+  // Use MAINNET for dappConfig to prevent SDK wallets from crashing
+  // The actual network (Movement Testnet) is handled by the external wallet (Nightly)
   return (
     <AptosWalletAdapterProvider
       autoConnect={true}
       optInWallets={["Nightly", "Pontem Wallet", "Petra"]}
       dappConfig={{
-        network: Network.CUSTOM,
+        network: Network.MAINNET,
       }}
       onError={(error) => {
         console.error("Wallet error:", JSON.stringify(error, null, 2));
