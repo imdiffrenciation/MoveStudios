@@ -19,7 +19,7 @@ const tipAmounts = [1, 5, 10, 25, 50, 100];
 
 const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }: TipModalProps) => {
   const { user } = useAuth();
-  const { tipCreator, initializeStats, canTipAmount, loading: tippingLoading, connected, walletAddress, networkError } = useTipping();
+  const { tipCreator, initializeStats, canTipAmount, loading: tippingLoading, connected, walletAddress } = useTipping();
   const [selectedAmount, setSelectedAmount] = useState<number>(1);
   const [defaultTipAmount, setDefaultTipAmount] = useState<number | null>(null);
   const [checkingBalance, setCheckingBalance] = useState(false);
@@ -126,7 +126,7 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
     }
   };
 
-  const isDisabled = tippingLoading || !creatorWalletAddress || !connected || canAfford === false || checkingBalance || !!networkError;
+  const isDisabled = tippingLoading || !creatorWalletAddress || !connected || canAfford === false || checkingBalance;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -138,14 +138,6 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
         </DialogHeader>
         
         <div className="space-y-6 py-4">
-          {/* Network Error */}
-          {networkError && connected && (
-            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-center">
-              <p className="text-sm text-destructive font-medium">Network Error</p>
-              <p className="text-xs text-destructive/80 mt-1">{networkError}</p>
-            </div>
-          )}
-
           {/* Wallet Connection Status */}
           {!connected && (
             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
@@ -156,7 +148,7 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
             </div>
           )}
 
-          {connected && !networkError && (
+          {connected && (
             <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
               <p className="text-xs text-green-500">
                 Wallet connected: {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
