@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTipping } from '@/hooks/useTipping';
 import { toast } from '@/hooks/use-toast';
-import { WalletSelectionModal } from '@/components/wallet/WalletSelectionModal';
 
 interface TipModalProps {
   isOpen: boolean;
@@ -127,13 +126,6 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
     }
   };
 
-  const handleWalletConnected = () => {
-    toast({
-      title: "Wallet connected",
-      description: "You can now send tips!",
-    });
-  };
-
   const isDisabled = tippingLoading || !creatorWalletAddress || !connected || canAfford === false || checkingBalance;
 
   return (
@@ -150,15 +142,9 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
           {!connected && (
             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
               <Wallet className="w-5 h-5 mx-auto mb-2 text-amber-500" />
-              <p className="text-sm text-amber-500 mb-3">
-                Connect your wallet to send tips
+              <p className="text-sm text-amber-500">
+                Please connect your wallet in Settings to send tips
               </p>
-              <WalletSelectionModal onConnected={handleWalletConnected}>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Wallet className="w-4 h-4" />
-                  Connect Wallet
-                </Button>
-              </WalletSelectionModal>
             </div>
           )}
 
