@@ -157,6 +157,15 @@ export const useTipping = () => {
     }
 
     try {
+      // First check if stats already exist
+      const statsExist = await checkStatsExist(account.address.toString());
+      console.log('Stats already exist:', statsExist);
+      
+      if (statsExist) {
+        console.log('Stats already initialized, skipping...');
+        return { success: true };
+      }
+
       const functionName = `${CONTRACT_ADDRESS}::${MODULE_NAME}::initialize_stats`;
       console.log('Initializing stats with function:', functionName);
 
@@ -184,13 +193,22 @@ export const useTipping = () => {
       }
     } catch (error: any) {
       console.error('Initialize stats error:', error);
-      // If stats already exist, that's fine
-      if (error.message?.includes('already exists') || error.message?.includes('RESOURCE_ALREADY_EXISTS')) {
+      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      
+      // If stats already exist, that's fine - check for various error message patterns
+      const errorMsg = error.message?.toLowerCase() || '';
+      if (errorMsg.includes('already') || errorMsg.includes('exist') || errorMsg.includes('resource_already_exists')) {
         return { success: true };
       }
+      
+      // If user rejected the transaction
+      if (errorMsg.includes('rejected') || error.code === 4001) {
+        return { success: false, error: 'Transaction rejected by user' };
+      }
+      
       return { success: false, error: error.message || 'Failed to initialize stats' };
     }
-  }, [connected, account, signAndSubmitTransaction, network?.chainId]);
+  }, [connected, account, signAndSubmitTransaction, network?.chainId, checkStatsExist]);
 
   // Main tip function
   const tipCreator = useCallback(async (
