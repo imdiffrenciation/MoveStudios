@@ -99,9 +99,14 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
     const initResult = await initializeStats();
     console.log('Init stats result:', initResult);
     
-    if (!initResult.success && !initResult.error?.includes('already exists')) {
+    // Accept success OR any "already exists" variant error (stats already initialized is fine)
+    const isAlreadyInitialized = initResult.error?.toLowerCase().includes('already') || 
+                                  initResult.error?.toLowerCase().includes('exist') ||
+                                  initResult.error?.includes('RESOURCE_ALREADY_EXISTS');
+    
+    if (!initResult.success && !isAlreadyInitialized) {
       toast({
-        title: "Setup failed",
+        title: "Setup failed", 
         description: initResult.error || "Failed to initialize tipping. Please try again.",
         variant: "destructive",
       });
