@@ -2,19 +2,26 @@ import { useState, useCallback } from 'react';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { Aptos, AptosConfig, Network } from '@aptos-labs/ts-sdk';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 
-// Contract configuration
+// Contract configuration - using hello_blockchain module name from your Move contract
 const CONTRACT_ADDRESS = '0xa82655afd873cdf5e35d2dfa6ab6def067c3b5407ba3f61d32dc41b91ed66955';
 const MODULE_NAME = 'tipping';
 
-// Movement Testnet configuration
-const aptosConfig = new AptosConfig({
-  network: Network.CUSTOM,
-  fullnode: 'https://testnet.movementnetwork.xyz/v1',
-});
-
-const aptos = new Aptos(aptosConfig);
+// Movement network configurations
+const MOVEMENT_CONFIGS = {
+  mainnet: {
+    chainId: 126,
+    name: "Movement Mainnet",
+    fullnode: "https://full.mainnet.movementinfra.xyz/v1",
+    explorer: "mainnet"
+  },
+  testnet: {
+    chainId: 250,
+    name: "Movement Testnet", 
+    fullnode: "https://full.testnet.movementinfra.xyz/v1",
+    explorer: "testnet"
+  }
+};
 
 // Octas conversion (1 MOVE = 10^8 octas)
 const OCTAS_PER_MOVE = 100_000_000;
@@ -24,8 +31,33 @@ export interface TipStats {
   tipsReceived: number;
 }
 
+// Create Aptos client based on chain ID
+const getAptosClient = (chainId?: number) => {
+  let networkConfig = MOVEMENT_CONFIGS.testnet; // Default to testnet
+  
+  if (chainId === 126) {
+    networkConfig = MOVEMENT_CONFIGS.mainnet;
+  } else if (chainId === 250) {
+    networkConfig = MOVEMENT_CONFIGS.testnet;
+  }
+  
+  const config = new AptosConfig({ 
+    network: Network.CUSTOM,
+    fullnode: networkConfig.fullnode
+  });
+  return new Aptos(config);
+};
+
+// Default client for queries
+const aptos = getAptosClient();
+
+const getExplorerUrl = (txHash: string, chainId?: number) => {
+  const networkConfig = chainId === 126 ? MOVEMENT_CONFIGS.mainnet : MOVEMENT_CONFIGS.testnet;
+  return `https://explorer.movementnetwork.xyz/txn/${txHash}?network=${networkConfig.explorer}`;
+};
+
 export const useTipping = () => {
-  const { account, signAndSubmitTransaction, connected } = useWallet();
+  const { account, signAndSubmitTransaction, connected, network } = useWallet();
   const [loading, setLoading] = useState(false);
 
   // Get sender wallet address from Supabase
@@ -60,9 +92,10 @@ export const useTipping = () => {
   const canTipAmount = useCallback(async (senderAddress: string, tipAmount: number): Promise<boolean> => {
     try {
       const tipAmountOctas = BigInt(tipAmount * OCTAS_PER_MOVE);
+      const client = getAptosClient(network?.chainId);
       
       // Use getAccountCoinAmount for Movement network native coin
-      const balance = await aptos.getAccountCoinAmount({
+      const balance = await client.getAccountCoinAmount({
         accountAddress: senderAddress,
         coinType: "0x1::aptos_coin::AptosCoin"
       });
@@ -74,12 +107,13 @@ export const useTipping = () => {
       // The contract will fail if balance is insufficient
       return true;
     }
-  }, []);
+  }, [network?.chainId]);
 
   // Check if stats exist for an address
   const checkStatsExist = useCallback(async (walletAddress: string): Promise<boolean> => {
     try {
-      const resources = await aptos.getAccountResources({ accountAddress: walletAddress });
+      const client = getAptosClient(network?.chainId);
+      const resources = await client.getAccountResources({ accountAddress: walletAddress });
       const tipStatsResource = resources.find(
         (r: any) => r.type === `${CONTRACT_ADDRESS}::${MODULE_NAME}::TipStats`
       );
@@ -88,12 +122,13 @@ export const useTipping = () => {
       console.error('Error checking stats existence:', error);
       return false;
     }
-  }, []);
+  }, [network?.chainId]);
 
   // Get tip stats from on-chain resources
   const getTipStats = useCallback(async (walletAddress: string): Promise<TipStats> => {
     try {
-      const resources = await aptos.getAccountResources({ accountAddress: walletAddress });
+      const client = getAptosClient(network?.chainId);
+      const resources = await client.getAccountResources({ accountAddress: walletAddress });
       const tipStatsResource = resources.find(
         (r: any) => r.type === `${CONTRACT_ADDRESS}::${MODULE_NAME}::TipStats`
       );
@@ -111,11 +146,11 @@ export const useTipping = () => {
       console.error('Error fetching tip stats:', error);
       return { tipsSent: 0, tipsReceived: 0 };
     }
-  }, []);
+  }, [network?.chainId]);
 
   // Initialize stats for the connected wallet
   const initializeStats = useCallback(async (): Promise<{ success: boolean; hash?: string; error?: string }> => {
-    console.log('initializeStats called', { connected, account: account?.address?.toString() });
+    console.log('initializeStats called', { connected, account: account?.address?.toString(), chainId: network?.chainId });
     
     if (!connected || !account) {
       return { success: false, error: 'Wallet not connected' };
@@ -125,24 +160,24 @@ export const useTipping = () => {
       const functionName = `${CONTRACT_ADDRESS}::${MODULE_NAME}::initialize_stats`;
       console.log('Initializing stats with function:', functionName);
 
-      const payload = {
+      // Use the Movement transaction format with sender field
+      const response = await signAndSubmitTransaction({
+        sender: account.address,
         data: {
           function: functionName as `${string}::${string}::${string}`,
-          typeArguments: [],
           functionArguments: []
         }
-      };
+      });
 
-      console.log('Init stats payload:', JSON.stringify(payload, null, 2));
-
-      const response = await signAndSubmitTransaction(payload as any);
       console.log('Init stats response:', response);
 
-      const txResult = await aptos.waitForTransaction({
+      const client = getAptosClient(network?.chainId);
+      const txResult = await client.waitForTransaction({
         transactionHash: response.hash,
       });
 
       if (txResult.success) {
+        console.log('Stats initialized! Explorer:', getExplorerUrl(response.hash, network?.chainId));
         return { success: true, hash: response.hash };
       } else {
         return { success: false, error: 'Initialize stats transaction failed' };
@@ -155,14 +190,20 @@ export const useTipping = () => {
       }
       return { success: false, error: error.message || 'Failed to initialize stats' };
     }
-  }, [connected, account, signAndSubmitTransaction]);
+  }, [connected, account, signAndSubmitTransaction, network?.chainId]);
 
   // Main tip function
   const tipCreator = useCallback(async (
     receiverWalletAddress: string,
     tipAmount: number
   ): Promise<{ success: boolean; hash?: string; error?: string }> => {
-    console.log('tipCreator called with:', { receiverWalletAddress, tipAmount, connected, account: account?.address?.toString() });
+    console.log('tipCreator called with:', { 
+      receiverWalletAddress, 
+      tipAmount, 
+      connected, 
+      account: account?.address?.toString(),
+      chainId: network?.chainId
+    });
     
     if (!connected || !account) {
       console.log('Wallet not connected - connected:', connected, 'account:', account);
@@ -199,36 +240,35 @@ export const useTipping = () => {
       const tipAmountOctas = Math.floor(tipAmount * OCTAS_PER_MOVE);
       console.log('Tip amount in octas:', tipAmountOctas);
 
-      // Build the function name explicitly to avoid any encoding issues
-      const functionName = "0xa82655afd873cdf5e35d2dfa6ab6def067c3b5407ba3f61d32dc41b91ed66955::tipping::tip";
+      // Build the function name
+      const functionName = `${CONTRACT_ADDRESS}::${MODULE_NAME}::tip`;
       
       console.log('Function name:', functionName);
       console.log('Receiver:', receiverWalletAddress);
-      console.log('Amount:', tipAmountOctas.toString());
+      console.log('Amount:', tipAmountOctas);
 
-      // Build transaction using the newer wallet adapter format with data wrapper
-      const payload = {
+      // Use the Movement transaction format with sender field
+      // This matches the working send-transaction.tsx pattern
+      const response = await signAndSubmitTransaction({
+        sender: account.address,
         data: {
-          function: functionName,
-          typeArguments: [],
-          functionArguments: [receiverWalletAddress, tipAmountOctas.toString()]
+          function: functionName as `${string}::${string}::${string}`,
+          functionArguments: [receiverWalletAddress, tipAmountOctas]
         }
-      };
-      
-      console.log('Transaction payload:', JSON.stringify(payload, null, 2));
+      });
 
-      console.log('Calling signAndSubmitTransaction...');
-      const response = await signAndSubmitTransaction(payload as any);
       console.log('Transaction response:', response);
 
       // Wait for transaction confirmation
       console.log('Waiting for transaction confirmation...');
-      const txResult = await aptos.waitForTransaction({
+      const client = getAptosClient(network?.chainId);
+      const txResult = await client.waitForTransaction({
         transactionHash: response.hash,
       });
       console.log('Transaction result:', txResult);
 
       if (txResult.success) {
+        console.log('Tip successful! Explorer:', getExplorerUrl(response.hash, network?.chainId));
         setLoading(false);
         return { success: true, hash: response.hash };
       } else {
@@ -247,7 +287,7 @@ export const useTipping = () => {
       
       return { success: false, error: error.message || 'Transaction failed' };
     }
-  }, [connected, account, signAndSubmitTransaction, canTipAmount, checkStatsExist]);
+  }, [connected, account, signAndSubmitTransaction, canTipAmount, checkStatsExist, network?.chainId]);
 
   return {
     tipCreator,
@@ -257,6 +297,7 @@ export const useTipping = () => {
     canTipAmount,
     getSenderWalletAddress,
     getReceiverWalletAddress,
+    getExplorerUrl: (hash: string) => getExplorerUrl(hash, network?.chainId),
     loading,
     connected,
     walletAddress: account?.address?.toString(),
