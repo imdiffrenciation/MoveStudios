@@ -7,18 +7,18 @@ import { supabase } from '@/integrations/supabase/client';
 const CONTRACT_ADDRESS = '0xa82655afd873cdf5e35d2dfa6ab6def067c3b5407ba3f61d32dc41b91ed66955';
 const MODULE_NAME = 'tipping';
 
-// Movement network configurations
+// Movement network configurations - CORRECT URLs
 const MOVEMENT_CONFIGS = {
   mainnet: {
     chainId: 126,
     name: "Movement Mainnet",
-    fullnode: "https://full.mainnet.movementinfra.xyz/v1",
+    fullnode: "https://mainnet.movementnetwork.xyz/v1",
     explorer: "mainnet"
   },
   testnet: {
     chainId: 250,
     name: "Movement Testnet", 
-    fullnode: "https://full.testnet.movementinfra.xyz/v1",
+    fullnode: "https://testnet.movementnetwork.xyz/v1",
     explorer: "testnet"
   }
 };
