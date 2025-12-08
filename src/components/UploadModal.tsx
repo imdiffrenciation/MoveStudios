@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Upload, Video, Image as ImageIcon, XCircle } from 'lucide-react';
+import { X, Upload, Video, Image as ImageIcon, XCircle, Shield } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { generateContentHash } from '@/hooks/useContentHash';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -80,6 +81,10 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
     setIsUploading(true);
     
     try {
+      // Generate content hash for protection
+      const contentHash = await generateContentHash(file);
+      console.log('Generated content hash:', contentHash);
+
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -95,8 +100,8 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
         .from('media')
         .getPublicUrl(fileName);
 
-      // Insert media record
-      const { error: insertError } = await supabase
+      // Insert media record with content hash
+      const { error: insertError } = await (supabase as any)
         .from('media')
         .insert({
           user_id: user.id,
@@ -105,13 +110,20 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
           title: title.trim(),
           description: description.trim() || null,
           tags: tags.length > 0 ? tags : null,
+          content_hash: contentHash,
+          is_protected: false,
         });
 
       if (insertError) throw insertError;
 
       toast({
         title: 'Upload successful!',
-        description: 'Your content has been shared with the community.',
+        description: (
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            <span>Content hash generated. Protect it in your profile!</span>
+          </div>
+        ),
       });
 
       onUpload();

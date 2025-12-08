@@ -4,17 +4,27 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Settings, Grid, Heart, Bookmark, DollarSign, ArrowLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Settings, Grid, Heart, Bookmark, DollarSign, ArrowLeft, Shield, AlertCircle } from 'lucide-react';
 import MasonryGrid from '@/components/MasonryGrid';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import MediaModal from '@/components/MediaModal';
+import ContentProtectionModal from '@/components/ContentProtectionModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollows } from '@/hooks/useFollows';
 import { useTipStats } from '@/hooks/useTipStats';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { MediaItem } from '@/types';
+
+interface UnprotectedMedia {
+  id: string;
+  title: string;
+  url: string;
+  content_hash: string;
+  type: string;
+}
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -27,12 +37,30 @@ const Profile = () => {
   const { tipsSent, tipsReceived, refreshStats: refreshTipStats } = useTipStats(profileUserId);
   const [activeTab, setActiveTab] = useState('created');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isProtectionModalOpen, setIsProtectionModalOpen] = useState(false);
   const [userMedia, setUserMedia] = useState<MediaItem[]>([]);
   const [likedMedia, setLikedMedia] = useState<MediaItem[]>([]);
   const [savedMedia, setSavedMedia] = useState<MediaItem[]>([]);
+  const [unprotectedMedia, setUnprotectedMedia] = useState<UnprotectedMedia[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+
+  const fetchUnprotectedMedia = async () => {
+    if (!profileUserId || !isOwnProfile) return;
+
+    const { data } = await (supabase as any)
+      .from('media')
+      .select('id, title, url, content_hash, type')
+      .eq('user_id', profileUserId)
+      .eq('is_protected', false)
+      .not('content_hash', 'is', null)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setUnprotectedMedia(data);
+    }
+  };
 
   useEffect(() => {
     if (profileUserId) {
@@ -40,6 +68,9 @@ const Profile = () => {
       fetchUserMedia();
       fetchLikedMedia();
       fetchSavedMedia();
+      if (isOwnProfile) {
+        fetchUnprotectedMedia();
+      }
       if (!isOwnProfile && user) {
         checkFollowStatus();
       }
@@ -283,8 +314,13 @@ const Profile = () => {
   };
 
   const handleUpload = () => {
-    fetchUserMedia(); // Refresh the media list after upload
+    fetchUserMedia();
+    fetchUnprotectedMedia();
     setIsUploadModalOpen(false);
+  };
+
+  const handleProtected = () => {
+    fetchUnprotectedMedia();
   };
 
   const handleMediaClick = (item: MediaItem) => {
@@ -378,6 +414,38 @@ const Profile = () => {
         </div>
       </header>
 
+      {/* Content Protection Banner */}
+      {isOwnProfile && unprotectedMedia.length > 0 && (
+        <div className="bg-primary/10 border-b border-primary/20">
+          <div className="container mx-auto px-3 sm:px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-primary/20">
+                  <AlertCircle className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground text-sm sm:text-base">
+                    {unprotectedMedia.length} unprotected content{unprotectedMedia.length > 1 ? 's' : ''}
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Store content hashes on blockchain to prove ownership
+                  </p>
+                </div>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => setIsProtectionModalOpen(true)}
+                className="gap-2"
+              >
+                <Shield className="w-4 h-4" />
+                <span className="hidden sm:inline">Protect Now</span>
+                <span className="sm:hidden">Protect</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Content Tabs */}
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -459,6 +527,13 @@ const Profile = () => {
         isOpen={!!selectedMedia}
         onClose={() => setSelectedMedia(null)}
         allMedia={[...userMedia, ...likedMedia, ...savedMedia]}
+      />
+
+      <ContentProtectionModal
+        isOpen={isProtectionModalOpen}
+        onClose={() => setIsProtectionModalOpen(false)}
+        unprotectedMedia={unprotectedMedia}
+        onProtected={handleProtected}
       />
     </div>
   );
