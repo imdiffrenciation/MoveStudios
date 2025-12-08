@@ -99,9 +99,11 @@ export type Database = {
       media: {
         Row: {
           comments_count: number | null
+          content_hash: string | null
           created_at: string
           description: string | null
           id: string
+          is_protected: boolean | null
           likes_count: number | null
           tags: string[] | null
           title: string
@@ -112,9 +114,11 @@ export type Database = {
         }
         Insert: {
           comments_count?: number | null
+          content_hash?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_protected?: boolean | null
           likes_count?: number | null
           tags?: string[] | null
           title: string
@@ -125,9 +129,11 @@ export type Database = {
         }
         Update: {
           comments_count?: number | null
+          content_hash?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_protected?: boolean | null
           likes_count?: number | null
           tags?: string[] | null
           title?: string
