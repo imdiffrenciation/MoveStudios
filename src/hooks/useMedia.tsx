@@ -39,6 +39,7 @@ export const useMedia = () => {
           tags: item.tags || [],
           likes: item.likes_count || 0,
           taps: item.views_count || 0,
+          contentHash: item.content_hash || undefined,
         };
       });
 

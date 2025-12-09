@@ -34,8 +34,10 @@ const Index = () => {
   };
 
   const filteredMedia = mediaItems.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.creator.toLowerCase().includes(searchQuery.toLowerCase());
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = item.title.toLowerCase().includes(query) ||
+                         item.creator.toLowerCase().includes(query) ||
+                         (item.contentHash && item.contentHash.toLowerCase().includes(query));
     const matchesTag = !selectedTag || item.tags.includes(selectedTag);
     return matchesSearch && matchesTag;
   });
