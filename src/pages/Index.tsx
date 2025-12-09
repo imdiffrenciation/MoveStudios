@@ -106,7 +106,7 @@ const Index = () => {
                 <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-semibold text-foreground">Movement</span>
+                <span className="text-xl font-pixel text-primary">MoveStudios</span>
               </button>
             </div>
             
