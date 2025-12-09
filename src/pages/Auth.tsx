@@ -82,11 +82,11 @@ const Auth = () => {
       <Card className="w-full max-w-sm sm:max-w-md relative z-10 border-primary/20 bg-card/95 backdrop-blur-sm">
         <CardHeader className="space-y-1 flex flex-col items-center pb-2">
           {/* Logo */}
-          <div className="w-full max-w-[200px] mb-4">
+          <div className="w-full max-w-[140px] mb-3">
             <img 
               src={moveStudiosLogo} 
               alt="MoveStudios" 
-              className="w-full h-auto rounded-lg"
+              className="w-full h-auto rounded-md"
             />
           </div>
           <CardTitle className="text-2xl font-pixel text-primary text-center tracking-tight">
