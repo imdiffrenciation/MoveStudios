@@ -60,11 +60,9 @@ const Index = () => {
               </Button>
               <button 
                 onClick={() => navigate('/')}
-                className="flex items-center gap-1.5"
+                className="flex items-center"
               >
-                <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
-                  <Sparkles className="w-3.5 h-3.5 text-primary-foreground" />
-                </div>
+                <span className="text-sm font-pixel text-primary">MS</span>
               </button>
             </div>
             
@@ -101,11 +99,8 @@ const Index = () => {
               </Button>
               <button 
                 onClick={() => navigate('/')}
-                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                className="flex items-center hover:opacity-80 transition-opacity"
               >
-                <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-primary-foreground" />
-                </div>
                 <span className="text-xl font-pixel text-primary">MoveStudios</span>
               </button>
             </div>
