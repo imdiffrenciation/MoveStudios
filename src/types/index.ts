@@ -9,6 +9,7 @@ export interface MediaItem {
   likes: number;
   taps: number;
   timestamp?: string;
+  contentHash?: string;
 }
 
 export interface TrendingTag {
