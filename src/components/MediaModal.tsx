@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Heart, MessageCircle, Share2, X, DollarSign, ChevronDown, Bookmark } from 'lucide-react';
+import { Heart, MessageCircle, Share2, X, DollarSign, ChevronDown, Bookmark, Shield, Loader2 } from 'lucide-react';
 import type { MediaItem } from '@/types';
 import { useLikes } from '@/hooks/useLikes';
 import { useSaves } from '@/hooks/useSaves';
@@ -11,6 +11,7 @@ import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/hooks/useAuth';
 import { useComments } from '@/hooks/useComments';
 import { useTipStats } from '@/hooks/useTipStats';
+import { useContentHash } from '@/hooks/useContentHash';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +41,9 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [showTipModal, setShowTipModal] = useState(false);
+  const [isProtected, setIsProtected] = useState(false);
+  const [protectLoading, setProtectLoading] = useState(false);
+  const { protectMedia, connected: walletConnected, loading: hashLoading, getExplorerUrl } = useContentHash();
 
   // Update currentMedia when media prop changes
   useEffect(() => {
@@ -74,6 +78,64 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
     
     checkFollowing();
   }, [user, creatorUserId, isFollowing]);
+
+  // Check if content is already protected
+  useEffect(() => {
+    const checkProtection = async () => {
+      if (!currentMedia?.id) return;
+      
+      const { data } = await (supabase as any)
+        .from('media')
+        .select('is_protected, content_hash')
+        .eq('id', currentMedia.id)
+        .single();
+      
+      setIsProtected(data?.is_protected || false);
+    };
+    
+    checkProtection();
+  }, [currentMedia?.id]);
+
+  const handleProtectContent = async () => {
+    if (!currentMedia?.id || !user) return;
+    
+    // Fetch the content hash from the database
+    const { data } = await (supabase as any)
+      .from('media')
+      .select('content_hash')
+      .eq('id', currentMedia.id)
+      .single();
+    
+    if (!data?.content_hash) {
+      toast({ title: 'No content hash found', description: 'This content does not have a hash generated.', variant: 'destructive' as any });
+      return;
+    }
+
+    if (!walletConnected) {
+      toast({ title: 'Wallet not connected', description: 'Please connect your wallet in Settings first.', variant: 'destructive' as any });
+      return;
+    }
+
+    setProtectLoading(true);
+    
+    const result = await protectMedia(currentMedia.id, data.content_hash);
+    
+    setProtectLoading(false);
+    
+    if (result.success) {
+      setIsProtected(true);
+      toast({ 
+        title: 'Content protected!', 
+        description: 'Your content hash has been stored on the blockchain.' 
+      });
+    } else {
+      toast({ 
+        title: 'Protection failed', 
+        description: result.error || 'Failed to store hash on blockchain.', 
+        variant: 'destructive' as any 
+      });
+    }
+  };
 
   const handleFollowToggle = async () => {
     if (!user || !creatorUserId || user.id === creatorUserId) {
@@ -275,6 +337,32 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                 <Button variant="outline" size="sm" className="rounded-full">
                   <Share2 className="w-4 h-4" />
                 </Button>
+                
+                {/* Own Your Content Button - Only for creator */}
+                {user && creatorUserId === user.id && !isProtected && (
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="gap-2 rounded-full bg-primary"
+                    onClick={handleProtectContent}
+                    disabled={protectLoading || hashLoading}
+                  >
+                    {protectLoading || hashLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Shield className="w-4 h-4" />
+                    )}
+                    Own Your Content
+                  </Button>
+                )}
+                
+                {/* Protected Badge - Show when content is protected */}
+                {isProtected && (
+                  <div className="flex items-center gap-1.5 text-xs text-primary font-medium px-3 py-1.5 bg-primary/10 rounded-full">
+                    <Shield className="w-3.5 h-3.5" />
+                    Protected
+                  </div>
+                )}
               </div>
 
               {/* Tags */}
