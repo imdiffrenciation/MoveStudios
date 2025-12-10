@@ -68,30 +68,25 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8 relative overflow-hidden">
-      {/* Dimmed background logo */}
-      <div 
-        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
-        style={{
-          backgroundImage: `url(${moveStudiosLogo})`,
-          backgroundSize: '400px',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'repeat',
-        }}
-      />
+      {/* Single enlarged dimmed background logo */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <img 
+          src={moveStudiosLogo} 
+          alt="" 
+          className="w-[500px] sm:w-[600px] md:w-[700px] opacity-[0.06] dark:opacity-[0.08]"
+        />
+      </div>
       
       <Card className="w-full max-w-sm sm:max-w-md relative z-10 border-primary/20 bg-card/95 backdrop-blur-sm">
-        <CardHeader className="space-y-1 flex flex-col items-center pb-2">
+        <CardHeader className="space-y-1 flex flex-col items-center pb-4">
           {/* Logo */}
-          <div className="w-full max-w-[140px] mb-3">
+          <div className="w-full max-w-[180px] mb-2">
             <img 
               src={moveStudiosLogo} 
               alt="MoveStudios" 
               className="w-full h-auto rounded-md"
             />
           </div>
-          <CardTitle className="text-2xl font-pixel text-primary text-center tracking-tight">
-            MoveStudios
-          </CardTitle>
           <CardDescription className="text-center">
             {isLogin ? 'Sign in to your account' : 'Create a new account'}
           </CardDescription>
