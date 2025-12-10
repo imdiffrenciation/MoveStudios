@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,11 +10,15 @@ import UploadModal from '@/components/UploadModal';
 import MediaModal from '@/components/MediaModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useMedia } from '@/hooks/useMedia';
+import { useRecommendation } from '@/hooks/useRecommendation';
+import { useAuth } from '@/hooks/useAuth';
 import type { MediaItem } from '@/types';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { media: mediaItems, loading } = useMedia();
+  const { user } = useAuth();
+  const { media: mediaItems, loading, trackView } = useMedia();
+  const { userPreferences } = useRecommendation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -27,6 +31,10 @@ const Index = () => {
 
   const handleMediaClick = (item: MediaItem) => {
     setSelectedMedia(item);
+    // Track view for recommendation algorithm
+    if (user) {
+      trackView(item.id);
+    }
   };
 
   const handleTagClick = (tag: string) => {
@@ -41,6 +49,9 @@ const Index = () => {
     const matchesTag = !selectedTag || item.tags.includes(selectedTag);
     return matchesSearch && matchesTag;
   });
+
+  // Show personalization indicator if user has preferences
+  const hasPreferences = userPreferences.size > 0;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -103,6 +114,13 @@ const Index = () => {
               >
                 <span className="text-xl font-pixel text-primary">MoveStudios</span>
               </button>
+              {/* Personalization indicator */}
+              {hasPreferences && user && (
+                <div className="flex items-center gap-1.5 text-xs text-primary/70 bg-primary/10 px-2 py-1 rounded-full">
+                  <Sparkles className="w-3 h-3" />
+                  <span>For You</span>
+                </div>
+              )}
             </div>
             
             <div className="flex-1 max-w-xl">

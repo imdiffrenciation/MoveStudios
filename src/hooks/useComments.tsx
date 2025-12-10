@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Comment {
@@ -98,7 +98,13 @@ export const useComments = (mediaId: string | null) => {
     setComments(formattedComments);
   };
 
-  const addComment = async (content: string, userId: string) => {
+  const addComment = useCallback(async (
+    content: string, 
+    userId: string,
+    onInteraction?: (mediaId: string, creatorId: string, tags: string[], type: 'comment') => void,
+    creatorId?: string,
+    tags?: string[]
+  ) => {
     const trimmedContent = content.trim();
     if (!mediaId || !trimmedContent) return;
     
@@ -118,13 +124,18 @@ export const useComments = (mediaId: string | null) => {
         });
 
       if (error) throw error;
+      
+      // Record interaction for recommendation algorithm
+      if (onInteraction && creatorId && tags) {
+        onInteraction(mediaId, creatorId, tags, 'comment');
+      }
     } catch (error) {
       console.error('Error adding comment:', error);
       throw error;
     } finally {
       setLoading(false);
     }
-  };
+  }, [mediaId]);
 
   return { comments, loading, addComment };
 };

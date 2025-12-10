@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
@@ -72,7 +72,11 @@ export const useLikes = (mediaId: string) => {
     }
   };
 
-  const toggleLike = async () => {
+  const toggleLike = useCallback(async (
+    onInteraction?: (mediaId: string, creatorId: string, tags: string[], type: 'like') => void,
+    creatorId?: string,
+    tags?: string[]
+  ) => {
     if (!user) {
       toast.error('Please sign in to like posts');
       return;
@@ -96,13 +100,18 @@ export const useLikes = (mediaId: string) => {
 
         if (error) throw error;
         setIsLiked(true);
+        
+        // Record interaction for recommendation algorithm
+        if (onInteraction && creatorId && tags) {
+          onInteraction(mediaId, creatorId, tags, 'like');
+        }
       }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, mediaId, isLiked]);
 
   return { isLiked, likesCount, toggleLike, loading };
 };
