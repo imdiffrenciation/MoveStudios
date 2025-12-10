@@ -6,7 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import moveStudiosLogo from '@/assets/movestudios-logo.jpg';
+
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+const signupSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username must be less than 20 characters').regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores').optional().or(z.literal('')),
+});
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -21,21 +33,38 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      // Validate inputs based on login or signup mode
       if (isLogin) {
+        const result = loginSchema.safeParse({ email, password });
+        if (!result.success) {
+          const errorMessage = result.error.errors[0]?.message || 'Invalid input';
+          toast.error(errorMessage);
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: result.data.email,
+          password: result.data.password,
         });
         if (error) throw error;
         toast.success('Logged in successfully!');
         navigate('/app');
       } else {
+        const result = signupSchema.safeParse({ email, password, username });
+        if (!result.success) {
+          const errorMessage = result.error.errors[0]?.message || 'Invalid input';
+          toast.error(errorMessage);
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: result.data.email,
+          password: result.data.password,
           options: {
             data: {
-              username: username || email.split('@')[0],
+              username: result.data.username || result.data.email.split('@')[0],
             },
             emailRedirectTo: `${window.location.origin}/app`,
           },
