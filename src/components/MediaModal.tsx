@@ -12,7 +12,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useComments } from '@/hooks/useComments';
 import { useTipStats } from '@/hooks/useTipStats';
 import { useContentHash } from '@/hooks/useContentHash';
-import { useState, useEffect } from 'react';
+import { useRecommendation } from '@/hooks/useRecommendation';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -28,12 +29,14 @@ interface MediaModalProps {
 
 const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: MediaModalProps) => {
   const { user } = useAuth();
+  const { recordInteraction, markAsSeen } = useRecommendation();
   const [currentMedia, setCurrentMedia] = useState<MediaItem | null>(media);
   const { isLiked, likesCount, toggleLike, loading } = useLikes(currentMedia?.id || '');
   const { isSaved, toggleSave, loading: saveLoading } = useSaves(currentMedia?.id || '');
   const { isFollowing } = useFollows(user?.id);
   const { comments, loading: commentsLoading, addComment } = useComments(currentMedia?.id || null);
   const { refreshStats: refreshUserTipStats } = useTipStats(user?.id);
+  const { protectMedia, connected: walletConnected, loading: hashLoading } = useContentHash();
   const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const [isFollowingCreator, setIsFollowingCreator] = useState(false);
@@ -43,12 +46,18 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
   const [showTipModal, setShowTipModal] = useState(false);
   const [isProtected, setIsProtected] = useState(false);
   const [protectLoading, setProtectLoading] = useState(false);
-  const { protectMedia, connected: walletConnected, loading: hashLoading, getExplorerUrl } = useContentHash();
 
   // Update currentMedia when media prop changes
   useEffect(() => {
     setCurrentMedia(media);
   }, [media]);
+
+  // Mark as seen when modal opens
+  useEffect(() => {
+    if (currentMedia?.id && isOpen) {
+      markAsSeen(currentMedia.id);
+    }
+  }, [currentMedia?.id, isOpen, markAsSeen]);
 
   useEffect(() => {
     const fetchCreatorId = async () => {
@@ -96,10 +105,20 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
     checkProtection();
   }, [currentMedia?.id]);
 
+  // Track interaction for recommendation algorithm
+  const trackInteraction = useCallback((type: 'like' | 'comment' | 'tip' | 'profile_check') => {
+    if (!currentMedia?.id || !creatorUserId) return;
+    recordInteraction(
+      currentMedia.id,
+      creatorUserId,
+      currentMedia.tags || [],
+      type
+    );
+  }, [currentMedia?.id, currentMedia?.tags, creatorUserId, recordInteraction]);
+
   const handleProtectContent = async () => {
     if (!currentMedia?.id || !user) return;
     
-    // Fetch the content hash from the database
     const { data } = await (supabase as any)
       .from('media')
       .select('content_hash')
@@ -137,6 +156,13 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
     }
   };
 
+  const handleLikeClick = () => {
+    toggleLike();
+    if (!isLiked) {
+      trackInteraction('like');
+    }
+  };
+
   const handleFollowToggle = async () => {
     if (!user || !creatorUserId || user.id === creatorUserId) {
       return;
@@ -169,10 +195,30 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
     }
   };
 
+  const handleCreatorProfileClick = () => {
+    if (creatorUserId) {
+      trackInteraction('profile_check');
+      navigate(`/profile/${creatorUserId}`);
+      onClose();
+    }
+  };
+
   const handleTagClick = (tag: string) => {
     if (onTagClick) {
       onTagClick(tag);
       onClose();
+    }
+  };
+
+  const handleCommentSubmit = async () => {
+    if (!commentText.trim() || !user) return;
+    try {
+      await addComment(commentText, user.id);
+      trackInteraction('comment');
+      setCommentText('');
+      toast({ title: 'Comment added' });
+    } catch (error) {
+      toast({ title: 'Failed to post comment', variant: 'destructive' as any });
     }
   };
 
@@ -206,6 +252,12 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
     if (scrollArea) {
       scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleTipSuccess = (amount: number) => {
+    trackInteraction('tip');
+    refreshUserTipStats();
+    console.log(`Tip sent: ${amount} $MOVE`);
   };
 
   const recommendations = getRecommendations();
@@ -252,12 +304,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
               <div className="flex items-center justify-between gap-4">
                 <div 
                   className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => {
-                    if (creatorUserId) {
-                      navigate(`/profile/${creatorUserId}`);
-                      onClose();
-                    }
-                  }}
+                  onClick={handleCreatorProfileClick}
                 >
                   <Avatar className="w-11 h-11 ring-2 ring-border">
                     <AvatarFallback className="bg-primary/10 text-primary font-semibold">
@@ -299,7 +346,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                 <Button
                   variant={isLiked ? "default" : "outline"}
                   size="sm"
-                  onClick={() => toggleLike()}
+                  onClick={handleLikeClick}
                   disabled={loading}
                   className="gap-2 rounded-full"
                 >
@@ -400,31 +447,16 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
                         className="rounded-full bg-secondary/50 border-0"
-                        onKeyPress={async (e) => {
+                        onKeyPress={(e) => {
                           if (e.key === 'Enter' && commentText.trim()) {
-                            try {
-                              await addComment(commentText, user.id);
-                              setCommentText('');
-                              toast({ title: 'Comment added' });
-                            } catch (error) {
-                              toast({ title: 'Failed to post comment', variant: 'destructive' as any });
-                            }
+                            handleCommentSubmit();
                           }
                         }}
                       />
                       <Button
                         size="sm"
                         className="rounded-full px-4"
-                        onClick={async () => {
-                          if (!commentText.trim()) return;
-                          try {
-                            await addComment(commentText, user.id);
-                            setCommentText('');
-                            toast({ title: 'Comment added' });
-                          } catch (error) {
-                            toast({ title: 'Failed to post comment', variant: 'destructive' as any });
-                          }
-                        }}
+                        onClick={handleCommentSubmit}
                         disabled={commentsLoading || !commentText.trim()}
                       >
                         Post
@@ -514,11 +546,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
           onClose={() => setShowTipModal(false)}
           creatorName={currentMedia.creator}
           creatorWalletAddress={currentMedia.creatorWalletAddress}
-          onTip={(amount) => {
-            // Refresh tip stats after successful tip
-            refreshUserTipStats();
-            console.log(`Tip sent: ${amount} $MOVE`);
-          }}
+          onTip={handleTipSuccess}
         />
       </DialogContent>
     </Dialog>

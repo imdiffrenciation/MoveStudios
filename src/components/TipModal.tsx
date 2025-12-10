@@ -13,11 +13,23 @@ interface TipModalProps {
   creatorName: string;
   creatorWalletAddress?: string;
   onTip: (amount: number) => void;
+  mediaId?: string;
+  creatorId?: string;
+  tags?: string[];
 }
 
 const tipAmounts = [1, 5, 10, 25, 50, 100];
 
-const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }: TipModalProps) => {
+const TipModal = ({ 
+  isOpen, 
+  onClose, 
+  creatorName, 
+  creatorWalletAddress, 
+  onTip,
+  mediaId,
+  creatorId,
+  tags = []
+}: TipModalProps) => {
   const { user } = useAuth();
   const { tipCreator, initializeStats, canTipAmount, loading: tippingLoading, connected, walletAddress } = useTipping();
   const [selectedAmount, setSelectedAmount] = useState<number>(1);
@@ -116,6 +128,36 @@ const TipModal = ({ isOpen, onClose, creatorName, creatorWalletAddress, onTip }:
     const result = await tipCreator(creatorWalletAddress, selectedAmount);
 
     if (result.success) {
+      // Update engagement score for tip (15% boost)
+      if (mediaId) {
+        await (supabase as any)
+          .from('media')
+          .select('engagement_score')
+          .eq('id', mediaId)
+          .single()
+          .then(async ({ data }: any) => {
+            if (data) {
+              await (supabase as any)
+                .from('media')
+                .update({ 
+                  engagement_score: (data.engagement_score || 0) + 15,
+                  quality_score: Math.min(100, ((data.engagement_score || 0) + 15) / 2)
+                })
+                .eq('id', mediaId);
+            }
+          });
+          
+        // Record tip interaction
+        if (user && creatorId) {
+          await (supabase as any).from('user_interactions').insert({
+            user_id: user.id,
+            media_id: mediaId,
+            creator_id: creatorId,
+            interaction_type: 'tip',
+          }).catch(() => {});
+        }
+      }
+
       toast({
         title: "Tip sent!",
         description: `You sent ${selectedAmount} $MOVE to ${creatorName}`,
