@@ -99,7 +99,13 @@ export const useComments = (mediaId: string | null) => {
   };
 
   const addComment = async (content: string, userId: string) => {
-    if (!mediaId || !content.trim()) return;
+    const trimmedContent = content.trim();
+    if (!mediaId || !trimmedContent) return;
+    
+    const MAX_COMMENT_LENGTH = 500;
+    if (trimmedContent.length > MAX_COMMENT_LENGTH) {
+      throw new Error(`Comment must be less than ${MAX_COMMENT_LENGTH} characters`);
+    }
 
     setLoading(true);
     try {
@@ -108,7 +114,7 @@ export const useComments = (mediaId: string | null) => {
         .insert({
           media_id: mediaId,
           user_id: userId,
-          content: content.trim(),
+          content: trimmedContent,
         });
 
       if (error) throw error;
