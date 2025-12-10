@@ -279,13 +279,13 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
 
         <ScrollArea className="h-full">
           <div className="flex flex-col">
-            {/* Hero Media Section */}
+            {/* Hero Media Section - Full aspect ratio */}
             <div className="relative w-full bg-black/95 flex items-center justify-center">
               {currentMedia.type === 'image' ? (
                 <img
                   src={currentMedia.url}
                   alt={currentMedia.title}
-                  className="w-full max-h-[45vh] object-contain"
+                  className="w-full max-h-[70vh] object-contain"
                 />
               ) : (
                 <video
@@ -293,7 +293,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                   controls
                   playsInline
                   webkit-playsinline="true"
-                  className="w-full max-h-[45vh] object-contain"
+                  className="w-full max-h-[70vh] object-contain"
                 />
               )}
             </div>
