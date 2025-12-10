@@ -46,6 +46,30 @@ export type Database = {
           },
         ]
       }
+      creator_preferences: {
+        Row: {
+          creator_id: string
+          id: string
+          score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          creator_id: string
+          id?: string
+          score?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          creator_id?: string
+          id?: string
+          score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -102,45 +126,54 @@ export type Database = {
           content_hash: string | null
           created_at: string
           description: string | null
+          engagement_score: number | null
           id: string
           is_protected: boolean | null
           likes_count: number | null
+          quality_score: number | null
           tags: string[] | null
           title: string
           type: string
           url: string
           user_id: string
           views_count: number | null
+          viral_score: number | null
         }
         Insert: {
           comments_count?: number | null
           content_hash?: string | null
           created_at?: string
           description?: string | null
+          engagement_score?: number | null
           id?: string
           is_protected?: boolean | null
           likes_count?: number | null
+          quality_score?: number | null
           tags?: string[] | null
           title: string
           type: string
           url: string
           user_id: string
           views_count?: number | null
+          viral_score?: number | null
         }
         Update: {
           comments_count?: number | null
           content_hash?: string | null
           created_at?: string
           description?: string | null
+          engagement_score?: number | null
           id?: string
           is_protected?: boolean | null
           likes_count?: number | null
+          quality_score?: number | null
           tags?: string[] | null
           title?: string
           type?: string
           url?: string
           user_id?: string
           views_count?: number | null
+          viral_score?: number | null
         }
         Relationships: []
       }
@@ -208,6 +241,94 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seen_posts: {
+        Row: {
+          id: string
+          media_id: string
+          seen_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          media_id: string
+          seen_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          media_id?: string
+          seen_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seen_posts_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_interactions: {
+        Row: {
+          created_at: string
+          creator_id: string
+          id: string
+          interaction_type: string
+          media_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          id?: string
+          interaction_type: string
+          media_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          id?: string
+          interaction_type?: string
+          media_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_interactions_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_preferences: {
+        Row: {
+          id: string
+          score: number
+          tag: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          score?: number
+          tag: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          score?: number
+          tag?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
