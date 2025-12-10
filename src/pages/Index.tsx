@@ -59,7 +59,7 @@ const Index = () => {
                 <Menu className="w-4 h-4" />
               </Button>
               <button 
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/app')}
                 className="flex items-center"
               >
                 <span className="text-sm font-pixel text-primary">MS</span>
@@ -98,7 +98,7 @@ const Index = () => {
                 <Menu className="w-5 h-5" />
               </Button>
               <button 
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/app')}
                 className="flex items-center hover:opacity-80 transition-opacity"
               >
                 <span className="text-xl font-pixel text-primary">MoveStudios</span>

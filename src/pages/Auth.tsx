@@ -28,7 +28,7 @@ const Auth = () => {
         });
         if (error) throw error;
         toast.success('Logged in successfully!');
-        navigate('/');
+        navigate('/app');
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -37,7 +37,7 @@ const Auth = () => {
             data: {
               username: username || email.split('@')[0],
             },
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `${window.location.origin}/app`,
           },
         });
         if (error) throw error;
@@ -56,7 +56,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/app`,
         },
       });
       if (error) throw error;
