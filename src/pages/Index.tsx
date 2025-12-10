@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Search, User, Settings, Menu } from 'lucide-react';
+import { Sparkles, Search, User, Settings, Menu, X } from 'lucide-react';
 import MasonryGrid from '@/components/MasonryGrid';
 import TrendingTags from '@/components/TrendingTags';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import MediaModal from '@/components/MediaModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useMedia } from '@/hooks/useMedia';
 import { useRecommendation } from '@/hooks/useRecommendation';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +24,7 @@ const Index = () => {
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [showMobileTags, setShowMobileTags] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
 
   const handleUpload = () => {
@@ -65,7 +67,7 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9"
-                onClick={() => setShowSidebar(!showSidebar)}
+                onClick={() => setShowMobileTags(true)}
               >
                 <Menu className="w-4 h-4" />
               </Button>
@@ -192,6 +194,24 @@ const Index = () => {
           )}
         </main>
       </div>
+
+      {/* Mobile Trending Tags Sheet */}
+      <Sheet open={showMobileTags} onOpenChange={setShowMobileTags}>
+        <SheetContent side="left" className="w-72 p-0">
+          <SheetHeader className="p-4 border-b border-border">
+            <SheetTitle>Trending Tags</SheetTitle>
+          </SheetHeader>
+          <div className="p-4">
+            <TrendingTags 
+              onTagSelect={(tag) => {
+                handleTagClick(tag);
+                setShowMobileTags(false);
+              }}
+              selectedTag={selectedTag}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Bottom Navigation */}
       <DockerNav onUploadClick={() => setIsUploadModalOpen(true)} />
