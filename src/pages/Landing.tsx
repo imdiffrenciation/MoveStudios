@@ -1,14 +1,29 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Wallet, Upload, Coins, Shield, Zap, Users, ArrowRight, CheckCircle2 } from 'lucide-react';
 import moveStudiosLogo from '@/assets/movestudios-logo.jpg';
+import { useAuth } from '@/hooks/useAuth';
 
 const Landing = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   const handleGetStarted = () => {
     navigate('/auth');
   };
+
+  // Redirect authenticated users to the app
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/app" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
