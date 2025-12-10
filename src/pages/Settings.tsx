@@ -14,6 +14,16 @@ import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { WalletSelectionModal } from '@/components/wallet/WalletSelectionModal';
 import { WalletVerification } from '@/components/wallet/WalletVerification';
 import { cn } from '@/lib/utils';
+import { z } from 'zod';
+
+const profileSchema = z.object({
+  username: z.string()
+    .min(1, 'Username is required')
+    .max(50, 'Username must be less than 50 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  bio: z.string().max(500, 'Bio must be less than 500 characters').optional().or(z.literal('')),
+  avatarUrl: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+});
 
 type SettingsTab = 'profile' | 'tips';
 
@@ -59,14 +69,26 @@ const Settings = () => {
   const handleSave = async () => {
     if (!user) return;
 
+    // Validate inputs before saving
+    const result = profileSchema.safeParse({ username, bio, avatarUrl });
+    if (!result.success) {
+      const errorMessage = result.error.errors[0]?.message || 'Invalid input';
+      toast({
+        title: "Validation Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await (supabase as any)
         .from('profiles')
         .update({
-          username,
-          bio,
-          avatar_url: avatarUrl,
+          username: result.data.username,
+          bio: result.data.bio || '',
+          avatar_url: result.data.avatarUrl || '',
           wallet_address: walletAddress,
           default_tip_amount: defaultTipAmount,
         })
