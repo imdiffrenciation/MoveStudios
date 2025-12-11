@@ -91,7 +91,7 @@ export const useRecommendation = () => {
     }
   };
 
-  // Record an interaction and update preferences
+  // Record an interaction in the background (doesn't re-sort feed during session)
   const recordInteraction = async (
     mediaId: string,
     creatorId: string,
@@ -114,12 +114,20 @@ export const useRecommendation = () => {
         interactionType === 'profile_check' ? 'profileCheck' : interactionType
       ] || 0;
 
-      // Update tag preferences
+      // Update tag preferences in database (background - no state update)
       for (const tag of tags) {
         const normalizedTag = tag.toLowerCase().trim();
         if (!normalizedTag) continue;
 
-        const currentScore = userPreferences.get(normalizedTag) || 0;
+        // Get current score from DB to ensure accuracy
+        const { data: existing } = await (supabase as any)
+          .from('user_preferences')
+          .select('score')
+          .eq('user_id', user.id)
+          .eq('tag', normalizedTag)
+          .maybeSingle();
+
+        const currentScore = existing?.score || 0;
         const newScore = currentScore + weight;
 
         await (supabase as any)
@@ -130,12 +138,17 @@ export const useRecommendation = () => {
             score: newScore,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id,tag' });
-
-        userPreferences.set(normalizedTag, newScore);
       }
 
-      // Update creator preference
-      const currentCreatorScore = creatorPreferences.get(creatorId) || 0;
+      // Update creator preference in database (background - no state update)
+      const { data: existingCreator } = await (supabase as any)
+        .from('creator_preferences')
+        .select('score')
+        .eq('user_id', user.id)
+        .eq('creator_id', creatorId)
+        .maybeSingle();
+
+      const currentCreatorScore = existingCreator?.score || 0;
       const newCreatorScore = currentCreatorScore + weight;
 
       await (supabase as any)
@@ -147,35 +160,9 @@ export const useRecommendation = () => {
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id,creator_id' });
 
-      creatorPreferences.set(creatorId, newCreatorScore);
-
-      // Update post engagement score
-      const boost = RECOMMENDATION_CONFIG.creator.boosts[
-        interactionType === 'profile_check' ? 'profileCheck' : interactionType
-      ] || 0;
-
-      await (supabase as any).rpc('increment_engagement_score', {
-        media_id: mediaId,
-        boost_amount: boost,
-      }).catch(() => {
-        // Fallback if RPC doesn't exist
-        (supabase as any)
-          .from('media')
-          .select('engagement_score')
-          .eq('id', mediaId)
-          .single()
-          .then(({ data }: any) => {
-            if (data) {
-              (supabase as any)
-                .from('media')
-                .update({ engagement_score: (data.engagement_score || 0) + boost })
-                .eq('id', mediaId);
-            }
-          });
-      });
-
-      setUserPreferences(new Map(userPreferences));
-      setCreatorPreferences(new Map(creatorPreferences));
+      // Note: engagement_score is updated via database triggers on likes/comments/saves
+      // No need to manually update here - triggers handle it automatically
+      
     } catch (error) {
       console.error('Error recording interaction:', error);
     }
