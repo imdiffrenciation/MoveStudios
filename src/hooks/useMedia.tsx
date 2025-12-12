@@ -115,13 +115,13 @@ export const useMedia = () => {
   useEffect(() => {
     fetchMedia();
 
-    // Set up realtime subscription
+    // Set up realtime subscription - only for new media, not engagement updates
     const channel = (supabase as any)
       .channel('media-changes')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'media',
         },
