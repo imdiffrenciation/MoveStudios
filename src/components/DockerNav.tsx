@@ -54,18 +54,16 @@ const DockerNav = ({ onUploadClick }: DockerNavProps) => {
       <div className="container mx-auto px-4">
         <div className="flex justify-around items-center py-2">
           {navItems.map((item) => (
-            <Button
+            <button
               key={item.id}
               onClick={() => handleNavClick(item)}
-              variant="ghost"
-              size="sm"
               className={`
-                group relative flex flex-col items-center space-y-1 transition-all duration-200
+                relative flex flex-col items-center justify-center p-2
                 ${item.id === 'create' 
-                  ? 'bg-primary text-primary-foreground rounded-full -mt-10 w-16 h-16 hover:scale-105' 
+                  ? 'bg-primary text-primary-foreground rounded-full -mt-10 w-16 h-16' 
                   : item.active 
                     ? 'text-primary' 
-                    : 'text-muted-foreground hover:text-foreground'
+                    : 'text-muted-foreground'
                 }
               `}
             >
@@ -78,13 +76,13 @@ const DockerNav = ({ onUploadClick }: DockerNavProps) => {
                     {item.label}
                   </span>
                   {item.active && (
-                    <div className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full" />
+                    <div className="absolute -bottom-0.5 w-1.5 h-1.5 bg-primary rounded-full" />
                   )}
                 </div>
               ) : (
                 <item.icon className="w-8 h-8" />
               )}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
