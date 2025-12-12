@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Grid, Heart, Bookmark, DollarSign, ArrowLeft, Shield, AlertCircle } from 'lucide-react';
+import { Settings, Grid, Heart, Bookmark, ArrowLeft, Shield, AlertCircle, Gift } from 'lucide-react';
 import MasonryGrid from '@/components/MasonryGrid';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
@@ -392,17 +392,17 @@ const Profile = () => {
                 </div>
                 <div className="text-center p-2 rounded-lg bg-secondary/50">
                   <div className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-1 justify-center">
-                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                    <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     {tipsReceived}
                   </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground">Received</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">TIPs Received</div>
                 </div>
                 <div className="text-center p-2 rounded-lg bg-secondary/50">
                   <div className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-1 justify-center">
-                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+                    <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     {tipsSent}
                   </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground">Sent</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">TIPs Sent</div>
                 </div>
               </div>
 
