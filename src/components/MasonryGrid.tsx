@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, Eye, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { MediaItem } from '@/types';
+
 interface MasonryGridProps {
   items: MediaItem[];
   onMediaClick: (item: MediaItem) => void;
   onTagClick?: (tag: string) => void;
   columns?: number;
 }
+
 const MediaCard = ({
   item,
   onMediaClick,
@@ -20,13 +22,49 @@ const MediaCard = ({
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [viewCounted, setViewCounted] = useState(false);
+  const [likesCount, setLikesCount] = useState(item.likes);
+  const [viewsCount, setViewsCount] = useState(item.taps);
+
+  // Sync with prop changes
+  useEffect(() => {
+    setLikesCount(item.likes);
+    setViewsCount(item.taps);
+  }, [item.likes, item.taps]);
+
+  // Real-time subscription for this media item
+  useEffect(() => {
+    const channel = (supabase as any)
+      .channel(`media-stats-${item.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'media',
+          filter: `id=eq.${item.id}`,
+        },
+        (payload: any) => {
+          if (payload.new?.likes_count !== undefined) {
+            setLikesCount(payload.new.likes_count);
+          }
+          if (payload.new?.views_count !== undefined) {
+            setViewsCount(payload.new.views_count);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [item.id]);
 
   const handleMouseEnter = async () => {
     setIsHovered(true);
     if (!viewCounted) {
       setViewCounted(true);
       await (supabase as any).from('media').update({
-        views_count: (item.taps || 0) + 1
+        views_count: (viewsCount || 0) + 1
       }).eq('id', item.id);
     }
   };
@@ -75,11 +113,11 @@ const MediaCard = ({
             <div className="flex items-center gap-3 text-background">
               <div className="flex items-center gap-1">
                 <Heart className="w-4 h-4" />
-                <span className="text-xs font-medium">{item.likes}</span>
+                <span className="text-xs font-medium">{likesCount}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Eye className="w-4 h-4" />
-                <span className="text-xs font-medium">{item.taps}</span>
+                <span className="text-xs font-medium">{viewsCount}</span>
               </div>
             </div>
           </div>
