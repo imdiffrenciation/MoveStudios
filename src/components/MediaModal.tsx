@@ -38,6 +38,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
   const { refreshStats: refreshUserTipStats } = useTipStats(user?.id);
   const { protectMedia, connected: walletConnected, loading: hashLoading } = useContentHash();
   const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
+  const [viewsCount, setViewsCount] = useState<number>(0);
   const navigate = useNavigate();
   const [isFollowingCreator, setIsFollowingCreator] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -59,23 +60,52 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
     }
   }, [currentMedia?.id, isOpen, markAsSeen]);
 
+  // Fetch creator ID and initial view count
   useEffect(() => {
-    const fetchCreatorId = async () => {
+    const fetchMediaData = async () => {
       if (!currentMedia?.id) return;
       
       const { data } = await (supabase as any)
         .from('media')
-        .select('user_id')
+        .select('user_id, views_count')
         .eq('id', currentMedia.id)
         .single();
       
       if (data) {
         setCreatorUserId(data.user_id);
+        setViewsCount(data.views_count || 0);
       }
     };
     
-    fetchCreatorId();
+    fetchMediaData();
   }, [currentMedia?.id]);
+
+  // Real-time subscription for view count updates
+  useEffect(() => {
+    if (!currentMedia?.id || !isOpen) return;
+
+    const channel = (supabase as any)
+      .channel(`media-views-${currentMedia.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'media',
+          filter: `id=eq.${currentMedia.id}`,
+        },
+        (payload: any) => {
+          if (payload.new?.views_count !== undefined) {
+            setViewsCount(payload.new.views_count);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentMedia?.id, isOpen]);
 
   useEffect(() => {
     const checkFollowing = async () => {
@@ -351,7 +381,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                 {/* View Count */}
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground px-3 py-1.5 bg-secondary/50 rounded-full">
                   <Eye className="w-4 h-4" />
-                  {(currentMedia as any).views_count || currentMedia.taps || 0}
+                  {viewsCount}
                 </div>
                 <Button
                   variant={isLiked ? "default" : "outline"}

@@ -107,10 +107,27 @@ export const useMedia = () => {
     }
   };
 
-  // Mark media as seen when viewed
+  // Track unique views - only counts once per user per media
   const trackView = useCallback(async (mediaId: string) => {
-    await markAsSeen(mediaId);
-  }, [markAsSeen]);
+    if (!user) return;
+    
+    // Check if user already viewed this media
+    const { data: existingView } = await supabase
+      .from('seen_posts')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('media_id', mediaId)
+      .maybeSingle();
+
+    // Only increment view count if this is a new view
+    if (!existingView) {
+      // Increment views_count in media table
+      await (supabase as any).rpc('increment_view_count', { media_id: mediaId });
+      
+      // Mark as seen
+      await markAsSeen(mediaId);
+    }
+  }, [markAsSeen, user]);
 
   useEffect(() => {
     fetchMedia();
