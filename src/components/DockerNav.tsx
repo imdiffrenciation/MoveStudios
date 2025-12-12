@@ -15,8 +15,8 @@ const DockerNav = ({ onUploadClick }: DockerNavProps) => {
       id: 'home', 
       icon: Home, 
       label: 'Home', 
-      path: '/',
-      active: location.pathname === '/'
+      path: '/app',
+      active: location.pathname === '/app'
     },
     { 
       id: 'create', 
@@ -30,7 +30,7 @@ const DockerNav = ({ onUploadClick }: DockerNavProps) => {
       icon: User, 
       label: 'Profile', 
       path: '/profile',
-      active: location.pathname === '/profile'
+      active: location.pathname === '/profile' || location.pathname.startsWith('/profile/')
     },
     { 
       id: 'settings', 
@@ -60,27 +60,27 @@ const DockerNav = ({ onUploadClick }: DockerNavProps) => {
               variant="ghost"
               size="sm"
               className={`
-                group relative flex flex-col items-center space-y-1 transition-all duration-300
+                group relative flex flex-col items-center space-y-1 transition-all duration-200
                 ${item.id === 'create' 
-                  ? 'bg-primary text-primary-foreground rounded-full -mt-10 w-16 h-16 hover:scale-110 hover:shadow-lg hover:shadow-primary/40' 
+                  ? 'bg-primary text-primary-foreground rounded-full -mt-10 w-16 h-16 hover:scale-105' 
                   : item.active 
-                    ? 'text-primary transform -translate-y-2' 
-                    : 'text-muted-foreground hover:text-primary hover:transform hover:-translate-y-1'
+                    ? 'text-primary' 
+                    : 'text-muted-foreground hover:text-foreground'
                 }
               `}
             >
               {item.id !== 'create' ? (
-                <>
-                  <item.icon className="w-6 h-6 transition-all duration-300" />
-                  <span className={`text-xs transition-all duration-300 ${
-                    item.active ? 'opacity-100 font-semibold' : 'opacity-70'
+                <div className="flex flex-col items-center">
+                  <item.icon className="w-5 h-5" />
+                  <span className={`text-xs mt-0.5 ${
+                    item.active ? 'font-medium' : ''
                   }`}>
                     {item.label}
                   </span>
                   {item.active && (
-                    <div className="absolute -bottom-2 w-1 h-1 bg-primary rounded-full" />
+                    <div className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full" />
                   )}
-                </>
+                </div>
               ) : (
                 <item.icon className="w-8 h-8" />
               )}
