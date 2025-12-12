@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Heart, MessageCircle, Share2, X, DollarSign, ChevronDown, Bookmark, Shield, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, X, DollarSign, ChevronDown, Bookmark, Shield, Loader2, Eye } from 'lucide-react';
 import type { MediaItem } from '@/types';
 import { useLikes } from '@/hooks/useLikes';
 import { useSaves } from '@/hooks/useSaves';
@@ -348,6 +348,11 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 flex-wrap">
+                {/* View Count */}
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground px-3 py-1.5 bg-secondary/50 rounded-full">
+                  <Eye className="w-4 h-4" />
+                  {(currentMedia as any).views_count || currentMedia.taps || 0}
+                </div>
                 <Button
                   variant={isLiked ? "default" : "outline"}
                   size="sm"
