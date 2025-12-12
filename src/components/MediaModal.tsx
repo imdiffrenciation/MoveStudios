@@ -13,7 +13,7 @@ import { useComments } from '@/hooks/useComments';
 import { useTipStats } from '@/hooks/useTipStats';
 import { useContentHash } from '@/hooks/useContentHash';
 import { useRecommendation } from '@/hooks/useRecommendation';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -237,8 +237,13 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
       return { item, score: matchingTags };
     });
     
-    // Sort by score (most matching tags first), then shuffle items with same score
-    scoredMedia.sort((a, b) => b.score - a.score || Math.random() - 0.5);
+    // Sort by score (most matching tags first), then by recency for stability
+    scoredMedia.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const timeA = new Date(a.item.timestamp || (a.item as any).created_at).getTime();
+      const timeB = new Date(b.item.timestamp || (b.item as any).created_at).getTime();
+      return timeB - timeA;
+    });
     
     return scoredMedia.slice(0, 10).map(s => s.item);
   };
@@ -260,7 +265,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
     console.log(`Tip sent: ${amount} $MOVE`);
   };
 
-  const recommendations = getRecommendations();
+  const recommendations = useMemo(getRecommendations, [currentMedia, allMedia]);
 
   if (!currentMedia) return null;
 
