@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Grid, Heart, Bookmark, ArrowLeft, Shield, AlertCircle, Gift } from 'lucide-react';
+import { Settings, Grid, Heart, Bookmark, ArrowLeft, Shield, AlertCircle, Gift, Camera } from 'lucide-react';
 import MasonryGrid from '@/components/MasonryGrid';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
@@ -45,6 +45,7 @@ const Profile = () => {
   const [profile, setProfile] = useState<any>(null);
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const fetchUnprotectedMedia = async () => {
     if (!profileUserId || !isOwnProfile) return;
@@ -327,6 +328,53 @@ const Profile = () => {
     setSelectedMedia(item);
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Please select an image under 5MB');
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await (supabase as any)
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
+      toast.success('Profile picture updated!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to upload avatar');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -344,10 +392,34 @@ const Profile = () => {
             </Button>
           )}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
-            <Avatar className="w-20 h-20 sm:w-24 sm:h-24 ring-4 ring-primary flex-shrink-0">
-              <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`} />
-              <AvatarFallback>{profile?.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="w-20 h-20 sm:w-24 sm:h-24 ring-4 ring-primary flex-shrink-0">
+                <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profileUserId}`} />
+                <AvatarFallback>{profile?.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+              </Avatar>
+              {isOwnProfile && (
+                <>
+                  <label 
+                    htmlFor="avatar-upload"
+                    className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors"
+                  >
+                    {avatarUploading ? (
+                      <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
+                  </label>
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                    disabled={avatarUploading}
+                  />
+                </>
+              )}
+            </div>
 
             <div className="flex-1 w-full text-center sm:text-left">
               <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-2 mb-4">
