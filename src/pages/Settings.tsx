@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, User, Wallet, DollarSign } from 'lucide-react';
+import { ArrowLeft, User, Wallet, DollarSign, Camera } from 'lucide-react';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,7 +22,7 @@ const profileSchema = z.object({
     .max(50, 'Username must be less than 50 characters')
     .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
   bio: z.string().max(500, 'Bio must be less than 500 characters').optional().or(z.literal('')),
-  avatarUrl: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  avatarUrl: z.string().optional().or(z.literal('')),
 });
 
 type SettingsTab = 'profile' | 'tips';
@@ -34,6 +34,7 @@ const Settings = () => {
   const { connected, account } = useWallet();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -141,6 +142,62 @@ const Settings = () => {
     setIsUploadModalOpen(false);
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image under 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      setAvatarUrl(publicUrl);
+      toast({
+        title: "Avatar uploaded",
+        description: "Don't forget to save your changes",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const tabs = [
     { id: 'profile' as const, label: 'Profile Settings', icon: User },
     { id: 'tips' as const, label: 'Tips', icon: Wallet },
@@ -224,14 +281,50 @@ const Settings = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="avatarUrl" className="text-sm font-medium">Avatar URL</Label>
-                      <Input 
-                        id="avatarUrl" 
-                        placeholder="https://example.com/avatar.jpg" 
-                        value={avatarUrl}
-                        onChange={(e) => setAvatarUrl(e.target.value)}
-                        className="rounded-xl h-12 bg-background border-border"
-                      />
+                      <Label className="text-sm font-medium">Profile Picture</Label>
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <div className="w-20 h-20 rounded-full overflow-hidden bg-muted border-2 border-border">
+                            {avatarUrl ? (
+                              <img 
+                                src={avatarUrl} 
+                                alt="Avatar" 
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                <User className="w-8 h-8" />
+                              </div>
+                            )}
+                          </div>
+                          <label 
+                            htmlFor="avatar-upload"
+                            className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors"
+                          >
+                            {avatarUploading ? (
+                              <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Camera className="w-4 h-4" />
+                            )}
+                          </label>
+                          <input
+                            id="avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            className="hidden"
+                            disabled={avatarUploading}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-muted-foreground">
+                            Click the camera icon to upload a new profile picture
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Max size: 5MB. Supported: JPG, PNG, GIF
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
