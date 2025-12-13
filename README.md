@@ -23,7 +23,7 @@ MoveStudios is a creator-focused platform that fixes these issues by:
 - Combining simple UX with Web3-level ownership and transparency
 ## What technologies are used for this project?
 
-This project is built with:
+Languages Used:
 
 - Vite
 - TypeScript
