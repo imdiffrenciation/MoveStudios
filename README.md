@@ -21,9 +21,7 @@ MoveStudios is a creator-focused platform that fixes these issues by:
 - Using a fairer recommendation algorithm that improves visibility for new and smaller creators
 - Allowing creators to receive tips instantly by simply connecting a wallet — no approval or verification required
 - Combining simple UX with Web3-level ownership and transparency
-## What technologies are used for this project?
-
-Languages Used:
+## Languages used:
 
 - Vite
 - TypeScript
