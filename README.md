@@ -13,7 +13,7 @@ Most Web2 and Web3 content platforms fail creators due to:
 - Slow payouts and complex verification processes
 - Complicated user interfaces
 
-## Solution
+## Solution (Features)
 
 MoveStudios is a creator-focused platform that fixes these issues by:
 
