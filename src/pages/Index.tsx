@@ -118,8 +118,7 @@ const Index = () => {
               </button>
               {/* Personalization indicator */}
               {hasPreferences && user && (
-                <div className="flex items-center gap-1.5 text-xs text-primary/70 bg-primary/10 px-2 py-1 rounded-full">
-                  <Sparkles className="w-3 h-3" />
+                <div className="flex items-center text-xs text-primary/70 bg-primary/10 px-2 py-1 rounded-full">
                   <span>For You</span>
                 </div>
               )}
