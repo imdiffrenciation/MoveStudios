@@ -26,9 +26,9 @@ const Landing = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-zinc-950 text-zinc-50 dark">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -93,7 +93,7 @@ const Landing = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-secondary/30">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-900/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">How It Works</h2>
@@ -124,7 +124,7 @@ const Landing = () => {
               },
             ].map((item) => (
               <div key={item.step} className="relative group">
-                <div className="bg-card border border-border rounded-2xl p-8 h-full transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 h-full transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
                   <div className="flex items-center justify-between mb-6">
                     <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
                       <item.icon className="w-7 h-7 text-primary" />
@@ -174,7 +174,7 @@ const Landing = () => {
             </div>
             <div className="relative">
               <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl p-8 border border-primary/20">
-                <div className="bg-card rounded-2xl p-6 shadow-xl">
+                <div className="bg-zinc-900 rounded-2xl p-6 shadow-xl">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Shield className="w-5 h-5 text-primary" />
@@ -184,7 +184,7 @@ const Landing = () => {
                       <div className="text-sm text-muted-foreground">Hash stored on-chain</div>
                     </div>
                   </div>
-                  <div className="bg-muted rounded-lg p-4 font-mono text-xs break-all">
+                  <div className="bg-zinc-800 rounded-lg p-4 font-mono text-xs break-all text-zinc-300">
                     0x7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069
                   </div>
                   <div className="mt-4 text-sm text-muted-foreground">
@@ -198,11 +198,11 @@ const Landing = () => {
       </section>
 
       {/* Tipping System */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-secondary/30">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-900/50">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1">
-              <div className="bg-card border border-border rounded-3xl p-8">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
                 <div className="text-center mb-8">
                   <div className="text-sm text-muted-foreground mb-2">Send a tip to</div>
                   <div className="font-semibold text-lg">@creator</div>
@@ -214,7 +214,7 @@ const Landing = () => {
                       className={`py-3 px-4 rounded-xl border-2 font-semibold transition-all ${
                         amount === 10
                           ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border hover:border-primary/50'
+                          : 'border-zinc-700 hover:border-primary/50'
                       }`}
                     >
                       {amount} MOVE
@@ -304,7 +304,7 @@ const Landing = () => {
             ].map((feature, i) => (
               <div
                 key={i}
-                className="bg-card border border-border rounded-2xl p-6 transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5"
+                className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5"
               >
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                   <feature.icon className="w-6 h-6 text-primary" />
@@ -337,7 +337,7 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-border">
+      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-zinc-800">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
