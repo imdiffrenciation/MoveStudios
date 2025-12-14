@@ -1,0 +1,9 @@
+---
+profiles:
+  default:
+    network: Custom
+    private_key: "0xdf35fbfa47c14f64451bbdcb74e6ebce9f9bd3a28fd4ed52ea95162b581ac90d"
+    public_key: "0xee73e97e57dde1433ae19022a8f0ebb0d241691239f378f8d806fa032b7b9569"
+    account: a82655afd873cdf5e35d2dfa6ab6def067c3b5407ba3f61d32dc41b91ed66955
+    rest_url: "https://testnet.movementnetwork.xyz/v1"
+    faucet_url: "https://faucet.testnet.movementnetwork.xyz/"
