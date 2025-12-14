@@ -8,9 +8,9 @@ module hello_blockchain::tipping {
     const E_NOT_ENOUGH_BALANCE: u64 = 1;
     const E_INVALID_AMOUNT: u64 = 2;
 
-    //
+    
     // Modern module event
-    //
+    
     #[event]
     struct TipEvent has drop, store {
         amount: u64,
@@ -18,17 +18,17 @@ module hello_blockchain::tipping {
         receiver: address,
     }
 
-    //
+    
     // Stats: tips sent + tips received
-    //
+    
     struct TipStats has key {
         tips_sent: u64,
         tips_received: u64,
     }
 
-    //
+    
     // Initialize TipStats for an account (internal)
-    //
+    
     fun init_stats(acct: &signer) {
         let addr = signer::address_of(acct);
         if (!exists<TipStats>(addr)) {
@@ -39,17 +39,17 @@ module hello_blockchain::tipping {
         }
     }
 
-    //
-    // PUBLIC: Initialize stats for an account
-    //
+    
+    // Initialize stats for an account
+    
     public entry fun initialize_stats(account: &signer) {
         init_stats(account);
     }
 
-    //
+   
     // MAIN TIP FUNCTION
-    // Takes tip_amount parameter and checks if user has enough AptosCoin
-    //
+    // Takes tip_amount parameter and checks if user has enough Move
+   
     public entry fun tip(
         sender: &signer,
         receiver: address,
@@ -63,33 +63,33 @@ module hello_blockchain::tipping {
         // Ensure sender has stats
         init_stats(sender);
 
-        // Check if sender has enough AptosCoin balance
+        // Check if sender has enough Move balance
         let balance = coin::balance<AptosCoin>(sender_addr);
         assert!(balance >= tip_amount, error::invalid_argument(E_NOT_ENOUGH_BALANCE));
 
         // Withdraw the specified tip amount from sender
         let coins = coin::withdraw<AptosCoin>(sender, tip_amount);
         
-        // FIXED: Add coin type parameter to deposit
+        // Add coin type parameter to deposit
         coin::deposit<AptosCoin>(receiver, coins);
 
-        //
+        
         // Update sender stats
-        //
+        
         let s_stats = borrow_global_mut<TipStats>(sender_addr);
         s_stats.tips_sent = s_stats.tips_sent + 1;
 
-        //
+        
         // Update receiver stats if initialized
-        //
+        
         if (exists<TipStats>(receiver)) {
             let r_stats = borrow_global_mut<TipStats>(receiver);
             r_stats.tips_received = r_stats.tips_received + 1;
         };
 
-        //
+        
         // Emit modern module event
-        //
+        
         let ev = TipEvent {
             amount: tip_amount,
             sender: sender_addr,
@@ -98,9 +98,9 @@ module hello_blockchain::tipping {
         event::emit(ev);
     }
 
-    //
+    
     // GET STATS - Changed to entry function for easier testing
-    //
+    
     public fun get_stats(account: address): (u64, u64) acquires TipStats {
         if (!exists<TipStats>(account)) {
             return (0, 0)
@@ -109,9 +109,8 @@ module hello_blockchain::tipping {
         (stats.tips_sent, stats.tips_received)
     }
 
-    //
-    // Optional: Helper function to check if stats exist
-    //
+    // Helper function to check if stats exist
+
     public fun stats_exist(account: address): bool {
         exists<TipStats>(account)
     }
