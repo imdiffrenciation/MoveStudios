@@ -18,7 +18,7 @@ import type { MediaItem } from '@/types';
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { media: mediaItems, loading, trackView } = useMedia();
+  const { media: mediaItems, loading, loadingMore, hasMore, loadMore, trackView } = useMedia();
   const { userPreferences } = useRecommendation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
@@ -189,6 +189,27 @@ const Index = () => {
                 onMediaClick={handleMediaClick}
                 onTagClick={handleTagClick}
               />
+              
+              {/* Load More Button */}
+              {hasMore && !searchQuery && !selectedTag && (
+                <div className="flex justify-center py-8">
+                  <Button
+                    variant="outline"
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="px-8"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      'Load More'
+                    )}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </main>
