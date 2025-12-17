@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,26 @@ const Index = () => {
 
   // Show personalization indicator if user has preferences
   const hasPreferences = userPreferences.size > 0;
+
+  // Infinite scroll observer
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !searchQuery && !selectedTag) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loadMore, searchQuery, selectedTag]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -190,24 +210,12 @@ const Index = () => {
                 onTagClick={handleTagClick}
               />
               
-              {/* Load More Button */}
+              {/* Infinite scroll trigger */}
               {hasMore && !searchQuery && !selectedTag && (
-                <div className="flex justify-center py-8">
-                  <Button
-                    variant="outline"
-                    onClick={loadMore}
-                    disabled={loadingMore}
-                    className="px-8"
-                  >
-                    {loadingMore ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
-                        Loading...
-                      </>
-                    ) : (
-                      'Load More'
-                    )}
-                  </Button>
+                <div ref={loadMoreRef} className="flex justify-center py-8">
+                  {loadingMore && (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  )}
                 </div>
               )}
             </>
