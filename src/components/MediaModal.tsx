@@ -314,23 +314,36 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
 
         <ScrollArea className="h-full">
           <div className="flex flex-col">
-            {/* Hero Media Section - Full aspect ratio */}
-            <div className="relative w-full bg-black/95 flex items-center justify-center">
-              {currentMedia.type === 'image' ? (
-                <img
-                  src={currentMedia.url}
-                  alt={currentMedia.title}
-                  className="w-full max-h-[70vh] object-contain"
-                />
-              ) : (
-                <video
-                  src={currentMedia.url}
-                  controls
-                  playsInline
-                  webkit-playsinline="true"
-                  className="w-full max-h-[70vh] object-contain"
-                />
-              )}
+            {/* Hero Media Section - Full aspect ratio with blurred background */}
+            <div className="relative w-full flex items-center justify-center overflow-hidden">
+              {/* Blurred background image */}
+              <div 
+                className="absolute inset-0 scale-110"
+                style={{
+                  backgroundImage: `url(${currentMedia.url})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'blur(40px) brightness(0.4)',
+                }}
+              />
+              {/* Actual media */}
+              <div className="relative z-10">
+                {currentMedia.type === 'image' ? (
+                  <img
+                    src={currentMedia.url}
+                    alt={currentMedia.title}
+                    className="w-full max-h-[70vh] object-contain"
+                  />
+                ) : (
+                  <video
+                    src={currentMedia.url}
+                    controls
+                    playsInline
+                    webkit-playsinline="true"
+                    className="w-full max-h-[70vh] object-contain"
+                  />
+                )}
+              </div>
             </div>
 
             {/* Content Section */}
@@ -541,7 +554,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
               {recommendations.length > 0 && (
                 <div className="pt-6 border-t border-border">
                   <h3 className="text-lg font-semibold text-foreground mb-4">More like this</h3>
-                  <div className="columns-2 gap-4">
+                  <div className="columns-2 sm:columns-3 gap-4">
                     {recommendations.map((item) => (
                       <div
                         key={item.id}
