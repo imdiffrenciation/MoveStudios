@@ -301,7 +301,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-[98vw] h-[95vh] max-h-[95vh] p-0 gap-0 overflow-hidden bg-background border-none rounded-2xl">
+      <DialogContent className="w-screen h-screen max-w-none max-h-none p-0 gap-0 overflow-hidden bg-background border-none sm:rounded-none rounded-none">
         {/* Close Button */}
         <Button
           variant="ghost"
