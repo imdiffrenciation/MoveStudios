@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Search, User, Settings, Menu, X } from 'lucide-react';
+import { Search, User, Settings, Menu } from 'lucide-react';
 import MasonryGrid, { MasonryGridSkeleton } from '@/components/MasonryGrid';
 import TrendingTags from '@/components/TrendingTags';
 import DockerNav from '@/components/DockerNav';
@@ -11,53 +11,70 @@ import MediaModal from '@/components/MediaModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useMedia } from '@/hooks/useMedia';
-import { useRecommendation } from '@/hooks/useRecommendation';
 import { useAuth } from '@/hooks/useAuth';
 import type { MediaItem } from '@/types';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { media: mediaItems, loading, trackView } = useMedia();
-  const { userPreferences } = useRecommendation();
+  const { media: mediaItems, loading, trackView, loadMore, hasMore } = useMedia();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showMobileTags, setShowMobileTags] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const handleUpload = () => {
+  // Memoize filtered media to prevent unnecessary recalculations
+  const filteredMedia = useMemo(() => {
+    if (!searchQuery && !selectedTag) return mediaItems;
+    
+    const query = searchQuery.toLowerCase();
+    return mediaItems.filter(item => {
+      const matchesSearch = !searchQuery || 
+        item.title.toLowerCase().includes(query) ||
+        item.creator.toLowerCase().includes(query);
+      const matchesTag = !selectedTag || item.tags.includes(selectedTag);
+      return matchesSearch && matchesTag;
+    });
+  }, [mediaItems, searchQuery, selectedTag]);
+
+  const handleUpload = useCallback(() => {
     setIsUploadModalOpen(false);
-  };
+  }, []);
 
-  const handleMediaClick = (item: MediaItem) => {
+  const handleMediaClick = useCallback((item: MediaItem) => {
     setSelectedMedia(item);
-    // Track view for recommendation algorithm
     if (user) {
       trackView(item.id);
     }
-  };
+  }, [user, trackView]);
 
-  const handleTagClick = (tag: string) => {
-    setSelectedTag(selectedTag === tag ? undefined : tag);
-  };
+  const handleTagClick = useCallback((tag: string) => {
+    setSelectedTag(prev => prev === tag ? undefined : tag);
+  }, []);
 
-  const filteredMedia = mediaItems.filter(item => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch = item.title.toLowerCase().includes(query) ||
-                         item.creator.toLowerCase().includes(query) ||
-                         (item.contentHash && item.contentHash.toLowerCase().includes(query));
-    const matchesTag = !selectedTag || item.tags.includes(selectedTag);
-    return matchesSearch && matchesTag;
-  });
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasMore || loading) return;
 
-  // Show personalization indicator if user has preferences
-  const hasPreferences = userPreferences.size > 0;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !loading) {
+          loadMore();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadMore]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header - Clean & Minimal */}
+      {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="px-3 md:px-6 py-2.5">
           {/* Mobile Header */}
@@ -116,12 +133,6 @@ const Index = () => {
               >
                 <span className="text-xl font-pixel text-primary">MoveStudios</span>
               </button>
-              {/* Personalization indicator */}
-              {hasPreferences && user && (
-                <div className="flex items-center text-xs text-primary/70 bg-primary/10 px-2 py-1 rounded-full">
-                  <span>For You</span>
-                </div>
-              )}
             </div>
             
             <div className="flex-1 max-w-xl">
@@ -152,7 +163,7 @@ const Index = () => {
 
       {/* Main Content */}
       <div className="px-3 md:px-6 py-4 flex gap-6">
-        {/* Sidebar - Trending Tags - Hidden on mobile */}
+        {/* Sidebar */}
         {showSidebar && (
           <aside className="hidden lg:block w-56 flex-shrink-0">
             <div className="sticky top-20">
@@ -166,7 +177,7 @@ const Index = () => {
 
         {/* Feed */}
         <main className="flex-1 min-w-0">
-          {loading ? (
+          {loading && mediaItems.length === 0 ? (
             <MasonryGridSkeleton count={12} />
           ) : (
             <>
@@ -187,6 +198,13 @@ const Index = () => {
                 onMediaClick={handleMediaClick}
                 onTagClick={handleTagClick}
               />
+              
+              {/* Load more trigger */}
+              {hasMore && (
+                <div ref={loadMoreRef} className="py-8 flex justify-center">
+                  {loading && <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
+                </div>
+              )}
             </>
           )}
         </main>

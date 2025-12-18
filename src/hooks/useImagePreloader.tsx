@@ -6,12 +6,10 @@ const preloadQueue: string[] = [];
 let isPreloading = false;
 
 // Generate low-res thumbnail URL using Supabase transform
-export const getLowResUrl = (url: string, width: number = 40): string => {
+export const getLowResUrl = (url: string, width: number = 20): string => {
   // Check if it's a Supabase storage URL
   if (url.includes('supabase.co/storage')) {
-    // Use Supabase image transformation for low-res
-    const transformUrl = url.replace('/object/public/', '/object/public/');
-    return `${transformUrl}?width=${width}&quality=20`;
+    return `${url}?width=${width}&quality=10`;
   }
   return url;
 };
@@ -36,18 +34,18 @@ const preloadImage = (src: string): Promise<void> => {
   });
 };
 
-// Process preload queue in background
+// Process preload queue in background with lower priority
 const processPreloadQueue = async () => {
   if (isPreloading || preloadQueue.length === 0) return;
   
   isPreloading = true;
   
-  // Process 3 images at a time
+  // Process 2 images at a time (reduced from 3)
   while (preloadQueue.length > 0) {
-    const batch = preloadQueue.splice(0, 3);
+    const batch = preloadQueue.splice(0, 2);
     await Promise.all(batch.map(preloadImage));
-    // Small delay between batches to not block main thread
-    await new Promise(r => setTimeout(r, 50));
+    // Longer delay between batches to reduce CPU pressure
+    await new Promise(r => setTimeout(r, 100));
   }
   
   isPreloading = false;
@@ -55,12 +53,21 @@ const processPreloadQueue = async () => {
 
 // Add images to preload queue
 export const queuePreload = (urls: string[]) => {
+  // Limit queue size to prevent memory issues
+  if (preloadQueue.length > 20) return;
+  
   urls.forEach(url => {
     if (!imageCache.has(url) && !preloadQueue.includes(url)) {
       preloadQueue.push(url);
     }
   });
-  processPreloadQueue();
+  
+  // Use requestIdleCallback if available for background preloading
+  if ('requestIdleCallback' in window) {
+    (window as any).requestIdleCallback(processPreloadQueue, { timeout: 2000 });
+  } else {
+    setTimeout(processPreloadQueue, 100);
+  }
 };
 
 // Check if image is already cached
@@ -71,9 +78,9 @@ export const isImageCached = (url: string): boolean => {
 // Hook for preloading upcoming images
 export const useImagePreloader = (items: { url: string }[], currentIndex: number = 0) => {
   useEffect(() => {
-    // Preload next 6 images ahead
+    // Preload next 4 images ahead (reduced from 6)
     const upcomingUrls = items
-      .slice(currentIndex, currentIndex + 6)
+      .slice(currentIndex, currentIndex + 4)
       .map(item => item.url);
     
     queuePreload(upcomingUrls);
@@ -100,7 +107,7 @@ export const useIntersectionPreloader = () => {
           });
         },
         {
-          rootMargin: '200px 0px', // Start preloading 200px before visible
+          rootMargin: '100px 0px',
           threshold: 0
         }
       );
