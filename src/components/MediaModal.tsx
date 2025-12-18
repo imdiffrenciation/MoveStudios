@@ -334,7 +334,6 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                     src={currentMedia.url}
                     alt={currentMedia.title}
                     className="w-full max-h-[70vh] object-contain"
-                    sizes="100vw"
                   />
                 ) : (
                   <video
