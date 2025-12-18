@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,42 +54,6 @@ const Index = () => {
 
   // Show personalization indicator if user has preferences
   const hasPreferences = userPreferences.size > 0;
-
-  // Infinite scroll observer
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  
-  useEffect(() => {
-    if (loading) return;
-
-    const currentRef = loadMoreRef.current;
-    if (!currentRef) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !searchQuery && !selectedTag) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1, rootMargin: '100px' }
-    );
-
-    observer.observe(currentRef);
-
-    return () => observer.disconnect();
-  }, [loading, hasMore, loadingMore, loadMore, searchQuery, selectedTag]);
-
-  // After the first page loads, keep fetching the remaining pages in the background.
-  useEffect(() => {
-    if (loading) return;
-    if (searchQuery || selectedTag) return;
-    if (!hasMore || loadingMore) return;
-
-    const t = window.setTimeout(() => {
-      loadMore();
-    }, 0);
-
-    return () => window.clearTimeout(t);
-  }, [loading, searchQuery, selectedTag, hasMore, loadingMore, loadMore]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -226,16 +190,26 @@ const Index = () => {
                 onTagClick={handleTagClick}
               />
               
-              {/* Infinite scroll trigger - always rendered with min height for observer */}
-              <div 
-                ref={loadMoreRef} 
-                className="flex justify-center py-8 min-h-[100px]"
-                style={{ visibility: hasMore && !searchQuery && !selectedTag ? 'visible' : 'hidden' }}
-              >
-                {loadingMore && (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                )}
-              </div>
+              {/* Load More Button */}
+              {hasMore && !searchQuery && !selectedTag && (
+                <div className="flex justify-center py-8">
+                  <Button
+                    variant="outline"
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="px-8"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      'Load More'
+                    )}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </main>
