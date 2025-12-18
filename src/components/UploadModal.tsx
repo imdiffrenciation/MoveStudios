@@ -16,7 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { generateContentHash } from '@/hooks/useContentHash';
-
+import { resizeAndConvertToWebP } from '@/lib/imageUtils';
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -81,17 +81,23 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
     setIsUploading(true);
     
     try {
+      // Convert images to WebP for better performance (max 2048px, 85% quality)
+      const processedFile = await resizeAndConvertToWebP(file, 2048, 0.85);
+      console.log(`Converted: ${file.name} (${(file.size / 1024).toFixed(1)}KB) → ${processedFile.name} (${(processedFile.size / 1024).toFixed(1)}KB)`);
+
       // Generate content hash for protection
-      const contentHash = await generateContentHash(file);
+      const contentHash = await generateContentHash(processedFile);
       console.log('Generated content hash:', contentHash);
 
       // Upload file to storage
-      const fileExt = file.name.split('.').pop();
+      const fileExt = processedFile.type.startsWith('video/') ? 'mp4' : 'webp';
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('media')
-        .upload(fileName, file);
+        .upload(fileName, processedFile, {
+          contentType: processedFile.type,
+        });
 
       if (uploadError) throw uploadError;
 
@@ -105,7 +111,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
         .from('media')
         .insert({
           user_id: user.id,
-          type: file.type.startsWith('video/') ? 'video' : 'image',
+          type: processedFile.type.startsWith('video/') ? 'video' : 'image',
           url: publicUrl,
           title: title.trim(),
           description: description.trim() || null,
