@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Search, User, Settings, Menu, X } from 'lucide-react';
-import MasonryGrid from '@/components/MasonryGrid';
+import MasonryGrid, { MasonryGridSkeleton } from '@/components/MasonryGrid';
 import TrendingTags from '@/components/TrendingTags';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
@@ -167,9 +167,7 @@ const Index = () => {
         {/* Feed */}
         <main className="flex-1 min-w-0">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
+            <MasonryGridSkeleton count={12} />
           ) : (
             <>
               {selectedTag && (
