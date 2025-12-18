@@ -82,9 +82,7 @@ const MediaCard = ({
         {item.type === 'image' ? (
           <>
             {!imageLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center aspect-[3/4]">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
+              <div className="absolute inset-0 animate-pulse bg-muted aspect-[3/4]" />
             )}
             <img 
               src={item.url} 
