@@ -4,8 +4,6 @@ import { useAuth } from './useAuth';
 import { useRecommendation } from './useRecommendation';
 import type { MediaItem } from '@/types';
 
-const PAGE_SIZE = 15;
-
 interface MediaWithScores {
   id: string;
   user_id: string;
@@ -28,34 +26,16 @@ export const useMedia = () => {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [rawMedia, setRawMedia] = useState<MediaWithScores[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
 
-  const fetchMedia = async (pageNum: number = 0, append: boolean = false) => {
+  const fetchMedia = async () => {
     try {
-      if (pageNum === 0) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
-
-      const from = pageNum * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-
-      // Fetch media with pagination
+      // Fetch media with engagement scores
       const { data: mediaData, error: mediaError } = await supabase
         .from('media')
         .select('*')
-        .order('created_at', { ascending: false })
-        .range(from, to);
+        .order('created_at', { ascending: false });
 
       if (mediaError) throw mediaError;
-
-      // Check if there's more data
-      if (mediaData.length < PAGE_SIZE) {
-        setHasMore(false);
-      }
 
       // Get unique user_ids and fetch profiles
       const userIds = [...new Set(mediaData.map((m) => m.user_id))];
@@ -67,6 +47,9 @@ export const useMedia = () => {
       const profilesMap = new Map(
         profilesData?.map((p) => [p.id, p]) || []
       );
+
+      // Store raw media for recommendation algorithm
+      setRawMedia(mediaData as MediaWithScores[]);
 
       const formattedMedia: MediaItem[] = mediaData.map((item) => {
         const profile = profilesMap.get(item.user_id);
@@ -85,97 +68,44 @@ export const useMedia = () => {
         };
       });
 
-      if (append) {
-        // Store raw media for recommendation algorithm
-        setRawMedia(prev => [...prev, ...(mediaData as MediaWithScores[])]);
+      // Apply recommendation algorithm if user is logged in
+      if (user && formattedMedia.length > 0) {
+        const enrichedMedia = formattedMedia.map((item, idx) => ({
+          ...item,
+          user_id: mediaData[idx].user_id,
+          engagement_score: (mediaData[idx] as any).engagement_score || 0,
+          viral_score: (mediaData[idx] as any).viral_score || 0,
+          quality_score: (mediaData[idx] as any).quality_score || 0,
+          created_at: mediaData[idx].created_at,
+        }));
 
-        // Apply recommendation algorithm if user is logged in
-        if (user && formattedMedia.length > 0) {
-          const enrichedMedia = formattedMedia.map((item, idx) => ({
-            ...item,
-            user_id: mediaData[idx].user_id,
-            engagement_score: (mediaData[idx] as any).engagement_score || 0,
-            viral_score: (mediaData[idx] as any).viral_score || 0,
-            quality_score: (mediaData[idx] as any).quality_score || 0,
-            created_at: mediaData[idx].created_at,
-          }));
+        const recommended = await getRecommendedPosts(enrichedMedia as any);
+        
+        // Map back to MediaItem format
+        const recommendedMedia = recommended.map((item: any) => ({
+          id: item.id,
+          type: item.type as 'image' | 'video',
+          url: item.url,
+          title: item.title,
+          creator: item.creator,
+          creatorWalletAddress: item.creatorWalletAddress,
+          tags: item.tags || [],
+          likes: item.likes || 0,
+          taps: item.taps || 0,
+          contentHash: item.contentHash,
+          timestamp: item.timestamp || item.created_at,
+        }));
 
-          const recommended = await getRecommendedPosts(enrichedMedia as any);
-          
-          const recommendedMedia = recommended.map((item: any) => ({
-            id: item.id,
-            type: item.type as 'image' | 'video',
-            url: item.url,
-            title: item.title,
-            creator: item.creator,
-            creatorWalletAddress: item.creatorWalletAddress,
-            tags: item.tags || [],
-            likes: item.likes || 0,
-            taps: item.taps || 0,
-            contentHash: item.contentHash,
-            timestamp: item.timestamp || item.created_at,
-          }));
-
-          setMedia(prev => [...prev, ...recommendedMedia]);
-        } else {
-          setMedia(prev => [...prev, ...formattedMedia]);
-        }
+        setMedia(recommendedMedia);
       } else {
-        // Initial load - replace all
-        setRawMedia(mediaData as MediaWithScores[]);
-
-        if (user && formattedMedia.length > 0) {
-          const enrichedMedia = formattedMedia.map((item, idx) => ({
-            ...item,
-            user_id: mediaData[idx].user_id,
-            engagement_score: (mediaData[idx] as any).engagement_score || 0,
-            viral_score: (mediaData[idx] as any).viral_score || 0,
-            quality_score: (mediaData[idx] as any).quality_score || 0,
-            created_at: mediaData[idx].created_at,
-          }));
-
-          const recommended = await getRecommendedPosts(enrichedMedia as any);
-          
-          const recommendedMedia = recommended.map((item: any) => ({
-            id: item.id,
-            type: item.type as 'image' | 'video',
-            url: item.url,
-            title: item.title,
-            creator: item.creator,
-            creatorWalletAddress: item.creatorWalletAddress,
-            tags: item.tags || [],
-            likes: item.likes || 0,
-            taps: item.taps || 0,
-            contentHash: item.contentHash,
-            timestamp: item.timestamp || item.created_at,
-          }));
-
-          setMedia(recommendedMedia);
-        } else {
-          setMedia(formattedMedia);
-        }
+        setMedia(formattedMedia);
       }
     } catch (error) {
       console.error('Error fetching media:', error);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   };
-
-  const loadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchMedia(nextPage, true);
-    }
-  }, [page, loadingMore, hasMore]);
-
-  const refetch = useCallback(() => {
-    setPage(0);
-    setHasMore(true);
-    fetchMedia(0, false);
-  }, []);
 
   // Track unique views - only counts once per user per media
   const trackView = useCallback(async (mediaId: string) => {
@@ -200,7 +130,7 @@ export const useMedia = () => {
   }, [markAsSeen, user]);
 
   useEffect(() => {
-    fetchMedia(0, false);
+    fetchMedia();
 
     // Set up realtime subscription - only for new media, not engagement updates
     const channel = (supabase as any)
@@ -213,7 +143,7 @@ export const useMedia = () => {
           table: 'media',
         },
         () => {
-          refetch();
+          fetchMedia();
         }
       )
       .subscribe();
@@ -223,5 +153,5 @@ export const useMedia = () => {
     };
   }, [user]);
 
-  return { media, loading, loadingMore, hasMore, loadMore, refetch, trackView, rawMedia };
+  return { media, loading, refetch: fetchMedia, trackView, rawMedia };
 };
