@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Heart, Eye, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { MediaItem } from '@/types';
 
 interface MasonryGridProps {
@@ -131,6 +132,25 @@ const MediaCard = ({
     </div>
   );
 };
+const MediaCardSkeleton = () => (
+  <div className="masonry-item">
+    <div className="rounded-2xl overflow-hidden">
+      <Skeleton className="w-full aspect-[3/4]" />
+    </div>
+    <div className="pt-2 pb-1 px-1">
+      <Skeleton className="h-3 w-20" />
+    </div>
+  </div>
+);
+
+export const MasonryGridSkeleton = ({ count = 8 }: { count?: number }) => (
+  <div className="masonry-grid">
+    {Array.from({ length: count }).map((_, i) => (
+      <MediaCardSkeleton key={i} />
+    ))}
+  </div>
+);
+
 const MasonryGrid = ({
   items,
   onMediaClick,
