@@ -36,13 +36,34 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (selectedFile: File) => {
-    if (selectedFile.size > 100 * 1024 * 1024) {
-      alert('File size must be less than 100MB');
+    // Only allow images and videos
+    const isImage = selectedFile.type.startsWith('image/');
+    const isVideo = selectedFile.type.startsWith('video/');
+    
+    if (!isImage && !isVideo) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Only images and videos are allowed.',
+        variant: 'destructive',
+      });
       return;
     }
 
-    if (selectedFile.type.startsWith('video/') && !selectedFile.type.includes('mp4')) {
-      alert('Please upload MP4 videos only');
+    if (selectedFile.size > 100 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'File size must be less than 100MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isVideo && !['video/mp4', 'video/webm', 'video/quicktime'].includes(selectedFile.type)) {
+      toast({
+        title: 'Unsupported video format',
+        description: 'Please upload MP4, WebM, or MOV videos.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -178,12 +199,12 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
               <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-foreground font-medium mb-2">Drop your file here or click to browse</p>
               <p className="text-sm text-muted-foreground">
-                Supports: Images (JPG, PNG) and Videos (MP4) up to 100MB
+                Supports: Images (JPG, PNG, GIF, WebP) and Videos (MP4, WebM, MOV) up to 100MB
               </p>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*,video/mp4"
+                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime"
                 onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
                 className="hidden"
               />
