@@ -69,6 +69,8 @@ export const useMedia = () => {
       });
 
       // Apply recommendation algorithm if user is logged in
+      let finalMedia = formattedMedia;
+      
       if (user && formattedMedia.length > 0) {
         const enrichedMedia = formattedMedia.map((item, idx) => ({
           ...item,
@@ -82,7 +84,7 @@ export const useMedia = () => {
         const recommended = await getRecommendedPosts(enrichedMedia as any);
         
         // Map back to MediaItem format
-        const recommendedMedia = recommended.map((item: any) => ({
+        finalMedia = recommended.map((item: any) => ({
           id: item.id,
           type: item.type as 'image' | 'video',
           url: item.url,
@@ -95,11 +97,10 @@ export const useMedia = () => {
           contentHash: item.contentHash,
           timestamp: item.timestamp || item.created_at,
         }));
-
-        setMedia(recommendedMedia);
-      } else {
-        setMedia(formattedMedia);
       }
+      
+      // Only set media once with final order
+      setMedia(finalMedia);
     } catch (error) {
       console.error('Error fetching media:', error);
     } finally {
