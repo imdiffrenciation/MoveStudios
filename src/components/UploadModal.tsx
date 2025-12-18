@@ -49,10 +49,10 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
       return;
     }
 
-    if (selectedFile.size > 100 * 1024 * 1024) {
+    if (selectedFile.size > 5 * 1024 * 1024) {
       toast({
         title: 'File too large',
-        description: 'File size must be less than 100MB.',
+        description: 'File size must be less than 5MB.',
         variant: 'destructive',
       });
       return;
@@ -199,7 +199,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
               <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-foreground font-medium mb-2">Drop your file here or click to browse</p>
               <p className="text-sm text-muted-foreground">
-                Supports: Images (JPG, PNG, GIF, WebP) and Videos (MP4, WebM, MOV) up to 100MB
+                Supports: Images (JPG, PNG, GIF, WebP) and Videos (MP4, WebM, MOV) up to 5MB
               </p>
               <input
                 ref={fileInputRef}
