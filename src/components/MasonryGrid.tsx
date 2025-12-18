@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Heart, Eye, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getLowResUrl, isImageCached, queuePreload } from '@/hooks/useImagePreloader';
 import type { MediaItem } from '@/types';
 
 interface MasonryGridProps {
@@ -14,17 +15,54 @@ interface MasonryGridProps {
 const MediaCard = ({
   item,
   onMediaClick,
-  onTagClick
+  onTagClick,
+  shouldPreload = false
 }: {
   item: MediaItem;
   onMediaClick: (item: MediaItem) => void;
   onTagClick?: (tag: string) => void;
+  shouldPreload?: boolean;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(() => isImageCached(item.url));
+  const [thumbLoaded, setThumbLoaded] = useState(false);
   const [viewCounted, setViewCounted] = useState(false);
   const [likesCount, setLikesCount] = useState(item.likes);
   const [viewsCount, setViewsCount] = useState(item.taps);
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Low-res thumbnail URL
+  const thumbUrl = getLowResUrl(item.url, 40);
+
+  // Intersection Observer for lazy loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin: '100px 0px', // Start loading 100px before visible
+        threshold: 0
+      }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Preload next images when this card becomes visible
+  useEffect(() => {
+    if (shouldPreload && isVisible) {
+      queuePreload([item.url]);
+    }
+  }, [shouldPreload, isVisible, item.url]);
 
   // Sync with prop changes
   useEffect(() => {
@@ -72,6 +110,7 @@ const MediaCard = ({
 
   return (
     <div 
+      ref={cardRef}
       className="group cursor-pointer"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setIsHovered(false)}
@@ -80,20 +119,49 @@ const MediaCard = ({
       {/* Media Container */}
       <div className="relative overflow-hidden rounded-2xl bg-secondary">
         {item.type === 'image' ? (
-          <>
-            {!imageLoaded && (
+          <div className="relative">
+            {/* Skeleton placeholder */}
+            {!thumbLoaded && !imageLoaded && (
               <div className="absolute inset-0 animate-pulse bg-muted aspect-[3/4]" />
             )}
-            <img 
-              src={item.url} 
-              alt={item.title} 
-              className={`w-full object-cover transition-all duration-500 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-              onLoad={() => setImageLoaded(true)}
-            />
-          </>
+            
+            {/* Low-res blurred thumbnail - loads first */}
+            {isVisible && !imageLoaded && (
+              <img
+                src={thumbUrl}
+                alt=""
+                className={`absolute inset-0 w-full h-full object-cover blur-lg scale-110 transition-opacity duration-300 ${
+                  thumbLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
+                onLoad={() => setThumbLoaded(true)}
+              />
+            )}
+            
+            {/* Full resolution image - loads after thumbnail */}
+            {isVisible && (
+              <img 
+                src={item.url} 
+                alt={item.title} 
+                className={`w-full object-cover transition-all duration-500 group-hover:scale-105 ${
+                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
+                loading="lazy"
+                onLoad={() => setImageLoaded(true)}
+              />
+            )}
+            
+            {/* Maintain aspect ratio when not loaded */}
+            {!imageLoaded && (
+              <div className="aspect-[3/4]" />
+            )}
+          </div>
         ) : (
           <div className="relative w-full aspect-[3/4]">
-            <video src={item.url} className="w-full h-full object-cover" muted playsInline />
+            {isVisible ? (
+              <video src={item.url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+            ) : (
+              <div className="w-full h-full animate-pulse bg-muted" />
+            )}
             <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
               <div className="w-12 h-12 rounded-full bg-background/90 flex items-center justify-center">
                 <Play className="w-5 h-5 text-foreground ml-0.5" />
@@ -130,6 +198,7 @@ const MediaCard = ({
     </div>
   );
 };
+
 const MediaCardSkeleton = () => (
   <div className="masonry-item">
     <div className="rounded-2xl overflow-hidden">
@@ -155,15 +224,37 @@ const MasonryGrid = ({
   onTagClick,
   columns = 4
 }: MasonryGridProps) => {
+  // Preload upcoming images in batches
+  useEffect(() => {
+    if (items.length > 0) {
+      // Preload first 8 images immediately
+      const initialUrls = items.slice(0, 8).map(item => item.url);
+      queuePreload(initialUrls);
+    }
+  }, [items]);
+
   if (items.length === 0) {
-    return <div className="flex items-center justify-center py-20">
+    return (
+      <div className="flex items-center justify-center py-20">
         <p className="text-muted-foreground">No items found</p>
-      </div>;
+      </div>
+    );
   }
-  return <div className="masonry-grid">
-      {items.map(item => <div key={item.id} className="masonry-item">
-          <MediaCard item={item} onMediaClick={onMediaClick} onTagClick={onTagClick} />
-        </div>)}
-    </div>;
+
+  return (
+    <div className="masonry-grid">
+      {items.map((item, index) => (
+        <div key={item.id} className="masonry-item">
+          <MediaCard 
+            item={item} 
+            onMediaClick={onMediaClick} 
+            onTagClick={onTagClick}
+            shouldPreload={index < 12} // Preload first 12 items
+          />
+        </div>
+      ))}
+    </div>
+  );
 };
+
 export default MasonryGrid;
