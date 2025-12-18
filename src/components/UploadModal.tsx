@@ -16,7 +16,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { generateContentHash } from '@/hooks/useContentHash';
-import { optimizeImage, createOptimizedFile } from '@/lib/imageOptimizer';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -82,34 +81,17 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
     setIsUploading(true);
     
     try {
-      let fileToUpload: File = file;
-      const isImage = file.type.startsWith('image/');
-
-      // Optimize images before upload
-      if (isImage) {
-        try {
-          const result = await optimizeImage(file);
-          fileToUpload = createOptimizedFile(result, file.name);
-          toast({
-            title: 'Image optimized',
-            description: `Reduced from ${(result.originalSize / 1024).toFixed(0)}KB to ${(result.optimizedSize / 1024).toFixed(0)}KB`,
-          });
-        } catch (optError) {
-          console.warn('Image optimization failed, using original:', optError);
-        }
-      }
-
       // Generate content hash for protection
-      const contentHash = await generateContentHash(fileToUpload);
+      const contentHash = await generateContentHash(file);
       console.log('Generated content hash:', contentHash);
 
       // Upload file to storage
-      const fileExt = fileToUpload.name.split('.').pop();
+      const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('media')
-        .upload(fileName, fileToUpload);
+        .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
@@ -123,7 +105,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
         .from('media')
         .insert({
           user_id: user.id,
-          type: isImage ? 'image' : 'video',
+          type: file.type.startsWith('video/') ? 'video' : 'image',
           url: publicUrl,
           title: title.trim(),
           description: description.trim() || null,
