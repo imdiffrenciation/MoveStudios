@@ -59,18 +59,19 @@ const Index = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
+    const currentRef = loadMoreRef.current;
+    if (!currentRef) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore && !searchQuery && !selectedTag) {
           loadMore();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, rootMargin: '100px' }
     );
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
+    observer.observe(currentRef);
 
     return () => observer.disconnect();
   }, [hasMore, loadingMore, loadMore, searchQuery, selectedTag]);
@@ -210,14 +211,16 @@ const Index = () => {
                 onTagClick={handleTagClick}
               />
               
-              {/* Infinite scroll trigger */}
-              {hasMore && !searchQuery && !selectedTag && (
-                <div ref={loadMoreRef} className="flex justify-center py-8">
-                  {loadingMore && (
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  )}
-                </div>
-              )}
+              {/* Infinite scroll trigger - always rendered with min height for observer */}
+              <div 
+                ref={loadMoreRef} 
+                className="flex justify-center py-8 min-h-[100px]"
+                style={{ visibility: hasMore && !searchQuery && !selectedTag ? 'visible' : 'hidden' }}
+              >
+                {loadingMore && (
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                )}
+              </div>
             </>
           )}
         </main>

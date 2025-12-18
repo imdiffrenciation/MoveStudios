@@ -164,12 +164,14 @@ export const useMedia = () => {
   };
 
   const loadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
+    if (loadingMore || !hasMore) return;
+    
+    setPage(prev => {
+      const nextPage = prev + 1;
       fetchMedia(nextPage, true);
-    }
-  }, [page, loadingMore, hasMore]);
+      return nextPage;
+    });
+  }, [loadingMore, hasMore]);
 
   const refetch = useCallback(() => {
     setPage(0);
