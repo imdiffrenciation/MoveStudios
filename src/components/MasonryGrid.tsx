@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Heart, Eye, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import OptimizedImage from '@/components/OptimizedImage';
 import type { MediaItem } from '@/types';
 
 interface MasonryGridProps {
@@ -80,12 +79,19 @@ const MediaCard = ({
       {/* Media Container */}
       <div className="relative overflow-hidden rounded-2xl bg-secondary">
         {item.type === 'image' ? (
-          <OptimizedImage
-            src={item.url}
-            alt={item.title}
-            className="w-full aspect-auto transition-transform duration-500 group-hover:scale-105"
-            onLoad={() => setImageLoaded(true)}
-          />
+          <>
+            {!imageLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center aspect-[3/4]">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            <img 
+              src={item.url} 
+              alt={item.title} 
+              className={`w-full object-cover transition-all duration-500 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setImageLoaded(true)}
+            />
+          </>
         ) : (
           <div className="relative w-full aspect-[3/4]">
             <video src={item.url} className="w-full h-full object-cover" muted playsInline />

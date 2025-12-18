@@ -18,7 +18,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import TipModal from './TipModal';
-import OptimizedImage from '@/components/OptimizedImage';
 
 interface MediaModalProps {
   media: MediaItem | null;
@@ -330,7 +329,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
               {/* Actual media */}
               <div className="relative z-10">
                 {currentMedia.type === 'image' ? (
-                  <OptimizedImage
+                  <img
                     src={currentMedia.url}
                     alt={currentMedia.title}
                     className="w-full max-h-[70vh] object-contain"
