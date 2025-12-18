@@ -10,6 +10,8 @@ export interface MediaItem {
   taps: number;
   timestamp?: string;
   contentHash?: string;
+  userId?: string;
+  engagementScore?: number;
 }
 
 export interface TrendingTag {
