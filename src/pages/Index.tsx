@@ -59,6 +59,8 @@ const Index = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
+    if (loading) return;
+
     const currentRef = loadMoreRef.current;
     if (!currentRef) return;
 
@@ -74,7 +76,20 @@ const Index = () => {
     observer.observe(currentRef);
 
     return () => observer.disconnect();
-  }, [hasMore, loadingMore, loadMore, searchQuery, selectedTag]);
+  }, [loading, hasMore, loadingMore, loadMore, searchQuery, selectedTag]);
+
+  // After the first page loads, keep fetching the remaining pages in the background.
+  useEffect(() => {
+    if (loading) return;
+    if (searchQuery || selectedTag) return;
+    if (!hasMore || loadingMore) return;
+
+    const t = window.setTimeout(() => {
+      loadMore();
+    }, 0);
+
+    return () => window.clearTimeout(t);
+  }, [loading, searchQuery, selectedTag, hasMore, loadingMore, loadMore]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
