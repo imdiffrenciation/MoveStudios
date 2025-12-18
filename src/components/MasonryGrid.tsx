@@ -21,6 +21,7 @@ const MediaCard = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [viewCounted, setViewCounted] = useState(false);
   const [likesCount, setLikesCount] = useState(item.likes);
   const [viewsCount, setViewsCount] = useState(item.taps);
@@ -77,23 +78,30 @@ const MediaCard = ({
       onClick={() => onMediaClick(item)}
     >
       {/* Media Container */}
-      <div className="relative overflow-hidden rounded-2xl bg-secondary">
+      <div className="relative overflow-hidden rounded-2xl bg-secondary aspect-[3/4]">
         {item.type === 'image' ? (
           <>
-            {!imageLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center aspect-[3/4]">
+            {!imageLoaded && !imageError && (
+              <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            {imageError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-secondary">
+                <span className="text-xs text-muted-foreground">Failed to load</span>
               </div>
             )}
             <img 
               src={item.url} 
               alt={item.title} 
-              className={`w-full object-cover transition-all duration-500 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              loading="lazy"
+              className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
             />
           </>
         ) : (
-          <div className="relative w-full aspect-[3/4]">
+          <div className="relative w-full h-full">
             <video src={item.url} className="w-full h-full object-cover" muted playsInline />
             <div className="absolute inset-0 bg-foreground/10 flex items-center justify-center">
               <div className="w-12 h-12 rounded-full bg-background/90 flex items-center justify-center">
