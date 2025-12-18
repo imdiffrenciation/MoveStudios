@@ -355,6 +355,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                   onClick={handleCreatorProfileClick}
                 >
                   <Avatar className="w-11 h-11 ring-2 ring-border">
+                    <AvatarImage src={currentMedia.creatorAvatarUrl} alt={currentMedia.creator} />
                     <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                       {currentMedia.creator.charAt(0).toUpperCase()}
                     </AvatarFallback>

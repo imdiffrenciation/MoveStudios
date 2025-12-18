@@ -5,6 +5,7 @@ export interface MediaItem {
   title: string;
   creator: string;
   creatorWalletAddress?: string;
+  creatorAvatarUrl?: string;
   tags: string[];
   likes: number;
   taps: number;

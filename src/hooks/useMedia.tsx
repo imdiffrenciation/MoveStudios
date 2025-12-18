@@ -80,6 +80,7 @@ export const useMedia = () => {
           title: item.title,
           creator: profile?.username || 'Unknown',
           creatorWalletAddress: profile?.wallet_address || undefined,
+          creatorAvatarUrl: profile?.avatar_url || undefined,
           tags: item.tags || [],
           likes: item.likes_count || 0,
           taps: item.views_count || 0,
