@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo, useCallback } from 'react';
+import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
 import { Heart, Eye, Play } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getLowResUrl, isImageCached, queuePreload } from '@/hooks/useImagePreloader';
@@ -195,6 +195,24 @@ const MasonryGrid = memo(({
   onTagClick,
   columns = 4
 }: MasonryGridProps) => {
+  const [columnCount, setColumnCount] = useState(2);
+  
+  // Responsive column count
+  useEffect(() => {
+    const updateColumns = () => {
+      const width = window.innerWidth;
+      if (width >= 1536) setColumnCount(6);
+      else if (width >= 1280) setColumnCount(5);
+      else if (width >= 1024) setColumnCount(4);
+      else if (width >= 768) setColumnCount(3);
+      else setColumnCount(2);
+    };
+    
+    updateColumns();
+    window.addEventListener('resize', updateColumns);
+    return () => window.removeEventListener('resize', updateColumns);
+  }, []);
+
   // Only preload first 4 images immediately
   useEffect(() => {
     if (items.length > 0) {
@@ -202,6 +220,22 @@ const MasonryGrid = memo(({
       queuePreload(initialUrls);
     }
   }, [items.length]); // Only run when item count changes
+
+  // Distribute items into columns using shortest-column algorithm
+  // This ensures visual order matches click order
+  const columnItems = useMemo(() => {
+    const cols: { items: Array<{ item: MediaItem; originalIndex: number }> }[] = 
+      Array.from({ length: columnCount }, () => ({ items: [] }));
+    
+    items.forEach((item, index) => {
+      // Simple round-robin distribution (items go left to right, then wrap)
+      // This matches the visual expectation
+      const colIndex = index % columnCount;
+      cols[colIndex].items.push({ item, originalIndex: index });
+    });
+    
+    return cols;
+  }, [items, columnCount]);
 
   if (items.length === 0) {
     return (
@@ -212,14 +246,17 @@ const MasonryGrid = memo(({
   }
 
   return (
-    <div className="masonry-grid">
-      {items.map((item, index) => (
-        <div key={item.id} className="masonry-item">
-          <MediaCard 
-            item={item} 
-            onMediaClick={onMediaClick}
-            shouldPreload={index < 8} // Only preload first 8
-          />
+    <div className="grid gap-3 md:gap-5" style={{ gridTemplateColumns: `repeat(${columnCount}, 1fr)` }}>
+      {columnItems.map((col, colIndex) => (
+        <div key={colIndex} className="flex flex-col gap-3 md:gap-5">
+          {col.items.map(({ item, originalIndex }) => (
+            <MediaCard 
+              key={item.id}
+              item={item} 
+              onMediaClick={onMediaClick}
+              shouldPreload={originalIndex < 8}
+            />
+          ))}
         </div>
       ))}
     </div>
