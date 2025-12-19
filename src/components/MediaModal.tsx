@@ -555,24 +555,24 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
               {recommendations.length > 0 && (
                 <div className="pt-6 border-t border-border">
                   <h3 className="text-lg font-semibold text-foreground mb-4">More like this</h3>
-                  <div className="columns-2 sm:columns-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {recommendations.map((item) => (
                       <div
                         key={item.id}
-                        className="group relative cursor-pointer break-inside-avoid mb-4"
+                        className="group relative cursor-pointer"
                         onClick={() => handleRecommendationClick(item)}
                       >
-                        <div className="relative rounded-2xl overflow-hidden bg-secondary/30 shadow-sm hover:shadow-md transition-all duration-300">
+                        <div className="relative rounded-2xl overflow-hidden bg-secondary/30 shadow-sm hover:shadow-md transition-all duration-300 aspect-[3/4]">
                           {item.type === 'image' ? (
                             <img
                               src={item.url}
                               alt={item.title}
-                              className="w-full h-auto object-cover"
+                              className="w-full h-full object-cover"
                             />
                           ) : (
                             <video
                               src={item.url}
-                              className="w-full h-auto object-cover"
+                              className="w-full h-full object-cover"
                               muted
                               playsInline
                             />
