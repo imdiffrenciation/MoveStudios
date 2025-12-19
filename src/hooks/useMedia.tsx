@@ -10,6 +10,7 @@ interface ProfileMap {
     username: string;
     avatar_url: string | null;
     wallet_address: string | null;
+    has_active_badge: boolean | null;
   };
 }
 
@@ -29,7 +30,7 @@ export const useMedia = () => {
     if (uncachedIds.length > 0) {
       const { data } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, wallet_address')
+        .select('id, username, avatar_url, wallet_address, has_active_badge')
         .in('id', uncachedIds);
       
       data?.forEach(p => {
@@ -81,6 +82,7 @@ export const useMedia = () => {
           creator: profile?.username || 'Unknown',
           creatorWalletAddress: profile?.wallet_address || undefined,
           creatorAvatarUrl: profile?.avatar_url || undefined,
+          hasActiveBadge: profile?.has_active_badge || false,
           tags: item.tags || [],
           likes: item.likes_count || 0,
           taps: item.views_count || 0,

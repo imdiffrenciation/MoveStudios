@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import TipModal from './TipModal';
+import CreatorBadge from './CreatorBadge';
 
 interface MediaModalProps {
   media: MediaItem | null;
@@ -581,7 +582,10 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             <div className="absolute bottom-0 left-0 right-0 p-3">
                               <p className="text-white text-sm font-medium line-clamp-2">{item.title}</p>
-                              <p className="text-white/70 text-xs mt-1">{item.creator}</p>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <p className="text-white/70 text-xs">{item.creator}</p>
+                                {item.hasActiveBadge && <CreatorBadge size="sm" showTooltip={false} />}
+                              </div>
                             </div>
                           </div>
                         </div>

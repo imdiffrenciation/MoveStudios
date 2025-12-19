@@ -6,6 +6,7 @@ export interface MediaItem {
   creator: string;
   creatorWalletAddress?: string;
   creatorAvatarUrl?: string;
+  hasActiveBadge?: boolean;
   tags: string[];
   likes: number;
   taps: number;
