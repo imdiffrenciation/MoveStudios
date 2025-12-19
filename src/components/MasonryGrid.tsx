@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
 import { Heart, Eye, Play } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getLowResUrl, isImageCached, queuePreload } from '@/hooks/useImagePreloader';
+import { isImageCached, queuePreload } from '@/hooks/useImagePreloader';
 import type { MediaItem } from '@/types';
 
 interface MasonryGridProps {
@@ -23,12 +23,8 @@ const MediaCard = memo(({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(() => isImageCached(item.url));
-  const [thumbLoaded, setThumbLoaded] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-
-  // Low-res thumbnail URL - smaller size for faster load
-  const thumbUrl = getLowResUrl(item.url, 20);
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -75,44 +71,27 @@ const MediaCard = memo(({
       <div className="relative overflow-hidden rounded-2xl bg-secondary">
         {item.type === 'image' ? (
           <div className="relative">
-            {/* Skeleton placeholder */}
-            {!thumbLoaded && !imageLoaded && (
-              <div className="absolute inset-0 animate-pulse bg-muted aspect-[3/4]" />
+            {/* Skeleton placeholder - shown until image loads */}
+            {!imageLoaded && (
+              <div className="aspect-[3/4] animate-pulse bg-muted" />
             )}
             
-            {/* Low-res blurred thumbnail - loads first */}
-            {isVisible && !imageLoaded && (
-              <img
-                src={thumbUrl}
-                alt=""
-                className={`absolute inset-0 w-full h-full object-cover blur-lg scale-110 transition-opacity duration-200 ${
-                  thumbLoaded ? 'opacity-100' : 'opacity-0'
-                }`}
-                onLoad={() => setThumbLoaded(true)}
-              />
-            )}
-            
-            {/* Full resolution image */}
+            {/* Full resolution image - natural aspect ratio, no cropping */}
             {isVisible && (
               <img 
                 src={item.url} 
                 alt={item.title} 
-                className={`w-full object-cover transition-all duration-300 group-hover:scale-105 ${
+                className={`w-full h-auto transition-all duration-300 group-hover:scale-105 ${
                   imageLoaded ? 'opacity-100' : 'opacity-0'
-                }`}
+                } ${!imageLoaded ? 'absolute inset-0' : ''}`}
                 loading="lazy"
                 decoding="async"
                 onLoad={() => setImageLoaded(true)}
               />
             )}
-            
-            {/* Maintain aspect ratio when not loaded */}
-            {!imageLoaded && (
-              <div className="aspect-[3/4]" />
-            )}
           </div>
         ) : (
-          <div className="relative w-full aspect-[3/4]">
+          <div className="relative w-full aspect-video">
             {isVisible ? (
               <video 
                 src={item.url} 
@@ -120,7 +99,6 @@ const MediaCard = memo(({
                 muted 
                 playsInline 
                 preload="none"
-                poster={thumbUrl}
               />
             ) : (
               <div className="w-full h-full animate-pulse bg-muted" />
