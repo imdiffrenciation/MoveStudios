@@ -22,11 +22,33 @@ const signupSchema = z.object({
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/app`,
+      });
+      if (error) throw error;
+      toast.success('Password reset email sent! Check your inbox.');
+      setShowForgotPassword(false);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +96,15 @@ const Auth = () => {
         navigate('/app');
       }
     } catch (error: any) {
-      toast.error(error.message);
+      // Better error messages
+      if (error.message === 'Invalid login credentials') {
+        toast.error('Invalid email or password. Try resetting your password if you forgot it.');
+      } else if (error.message.includes('User already registered')) {
+        toast.error('This email is already registered. Try signing in instead.');
+        setIsLogin(true);
+      } else {
+        toast.error(error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -95,6 +125,68 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8 relative overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <img 
+            src={moveStudiosLogo} 
+            alt="" 
+            className="w-[500px] sm:w-[600px] md:w-[700px] opacity-[0.06] dark:opacity-[0.08]"
+          />
+        </div>
+        
+        <Card className="w-full max-w-sm sm:max-w-md relative z-10 border-primary/20 bg-card/95 backdrop-blur-sm">
+          <CardHeader className="space-y-1 flex flex-col items-center pb-4">
+            <div className="w-full max-w-[180px] mb-2">
+              <img 
+                src={moveStudiosLogo} 
+                alt="MoveStudios" 
+                className="w-full h-auto rounded-md"
+              />
+            </div>
+            <CardTitle className="text-xl">Reset Password</CardTitle>
+            <CardDescription className="text-center">
+              Enter your email and we'll send you a reset link
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">Email</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="h-11 bg-background border-border focus:border-primary focus:ring-primary"
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold" 
+                disabled={loading}
+              >
+                {loading ? 'Sending...' : 'Send Reset Link'}
+              </Button>
+            </form>
+            <div className="text-center text-sm">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="text-primary hover:text-primary/80 hover:underline transition-colors"
+              >
+                Back to login
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8 relative overflow-hidden">
@@ -208,6 +300,17 @@ const Auth = () => {
             </Button>
           </form>
           
+          {isLogin && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-muted-foreground hover:text-primary hover:underline transition-colors"
+              >
+                Forgot your password?
+              </button>
+            </div>
+          )}
           
           <div className="text-center text-sm">
             <button
