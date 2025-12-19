@@ -5,15 +5,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Grid, Heart, Bookmark, ArrowLeft, Shield, AlertCircle, Gift, Camera } from 'lucide-react';
+import { Settings, Grid, Heart, Bookmark, ArrowLeft, Shield, AlertCircle, Gift, Camera, Award } from 'lucide-react';
 import MasonryGrid from '@/components/MasonryGrid';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import MediaModal from '@/components/MediaModal';
 import ContentProtectionModal from '@/components/ContentProtectionModal';
+import BadgePurchaseModal from '@/components/BadgePurchaseModal';
+import CreatorBadge from '@/components/CreatorBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollows } from '@/hooks/useFollows';
 import { useTipStats } from '@/hooks/useTipStats';
+import { useBadge } from '@/hooks/useBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { MediaItem } from '@/types';
@@ -46,6 +49,9 @@ const Profile = () => {
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+  const [hasActiveBadge, setHasActiveBadge] = useState(false);
+  const { getUserBadgeStatus } = useBadge();
 
   const fetchUnprotectedMedia = async () => {
     if (!profileUserId || !isOwnProfile) return;
@@ -66,6 +72,7 @@ const Profile = () => {
   useEffect(() => {
     if (profileUserId) {
       fetchProfile();
+      fetchBadgeStatus();
       fetchUserMedia();
       fetchLikedMedia();
       fetchSavedMedia();
@@ -153,6 +160,12 @@ const Profile = () => {
     if (data) {
       setProfile(data);
     }
+  };
+
+  const fetchBadgeStatus = async () => {
+    if (!profileUserId) return;
+    const status = await getUserBadgeStatus(profileUserId);
+    setHasActiveBadge(status.hasBadge);
   };
 
   const fetchSavedMedia = async () => {
@@ -424,19 +437,35 @@ const Profile = () => {
             <div className="flex-1 w-full text-center sm:text-left">
               <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-2 mb-4">
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">{profile?.username || 'Loading...'}</h1>
+                  <div className="flex items-center gap-2 justify-center sm:justify-start">
+                    <h1 className="text-xl sm:text-2xl font-bold text-foreground">{profile?.username || 'Loading...'}</h1>
+                    {hasActiveBadge && <CreatorBadge size="md" />}
+                  </div>
                   <p className="text-sm text-muted-foreground">@{profile?.username || 'user'}</p>
                 </div>
                 {isOwnProfile ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/settings')}
-                    className="gap-2"
-                  >
-                    <Settings className="w-4 h-4" />
-                    Edit Profile
-                  </Button>
+                  <div className="flex gap-2">
+                    {!hasActiveBadge && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => setIsBadgeModalOpen(true)}
+                        className="gap-2"
+                      >
+                        <Award className="w-4 h-4" />
+                        Get Badge
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/settings')}
+                      className="gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Edit Profile
+                    </Button>
+                  </div>
                 ) : (
                   <Button
                     variant={isFollowingUser ? "outline" : "default"}
@@ -606,6 +635,15 @@ const Profile = () => {
         onClose={() => setIsProtectionModalOpen(false)}
         unprotectedMedia={unprotectedMedia}
         onProtected={handleProtected}
+      />
+
+      <BadgePurchaseModal
+        isOpen={isBadgeModalOpen}
+        onClose={() => setIsBadgeModalOpen(false)}
+        onSuccess={() => {
+          fetchBadgeStatus();
+          setIsBadgeModalOpen(false);
+        }}
       />
     </div>
   );
