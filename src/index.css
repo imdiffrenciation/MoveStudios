@@ -103,3 +103,33 @@
     font-family: 'Press Start 2P', cursive;
   }
 }
+
+/* Disable hover effects on touch devices */
+@media (hover: none) {
+  *:hover {
+    /* Reset common hover transformations */
+    transform: none !important;
+    filter: none !important;
+  }
+  
+  /* Disable scale hover effects */
+  .hover\:scale-105:hover,
+  .hover\:scale-110:hover,
+  .hover\:scale-95:hover {
+    transform: none !important;
+  }
+  
+  /* Disable opacity hover effects */
+  .hover\:opacity-100:hover,
+  .hover\:opacity-90:hover,
+  .hover\:opacity-80:hover {
+    opacity: inherit !important;
+  }
+  
+  /* Disable background hover effects - let active states work instead */
+  button:hover,
+  a:hover,
+  [role="button"]:hover {
+    transition: none !important;
+  }
+}
