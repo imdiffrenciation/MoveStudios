@@ -20,6 +20,7 @@ const CreatorBadge = ({ size = 'md', className, showTooltip = true }: CreatorBad
       className={cn(
         sizeClasses[size].container, 
         'rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center',
+        'animate-badge-glow',
         className
       )}
     >
