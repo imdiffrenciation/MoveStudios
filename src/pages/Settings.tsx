@@ -4,15 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, User, Wallet, DollarSign } from 'lucide-react';
+import { ArrowLeft, User, Wallet, DollarSign, Award } from 'lucide-react';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
+import BadgePurchaseModal from '@/components/BadgePurchaseModal';
+import CreatorBadge from '@/components/CreatorBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { WalletSelectionModal } from '@/components/wallet/WalletSelectionModal';
 import { WalletVerification } from '@/components/wallet/WalletVerification';
+import { useBadge } from '@/hooks/useBadge';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 
@@ -25,7 +28,7 @@ const profileSchema = z.object({
   avatarUrl: z.string().optional().or(z.literal('')),
 });
 
-type SettingsTab = 'profile' | 'tips';
+type SettingsTab = 'profile' | 'tips' | 'badge';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -33,17 +36,22 @@ const Settings = () => {
   const { toast } = useToast();
   const { connected, account } = useWallet();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [defaultTipAmount, setDefaultTipAmount] = useState<number>(1);
   const [showWalletConnect, setShowWalletConnect] = useState(false);
+  const [hasActiveBadge, setHasActiveBadge] = useState(false);
+  const [badgeExpiresAt, setBadgeExpiresAt] = useState<Date | null>(null);
+  const { getUserBadgeStatus } = useBadge();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchBadgeStatus();
     }
   }, [user]);
 
@@ -62,6 +70,13 @@ const Settings = () => {
       setWalletAddress(data.wallet_address || '');
       setDefaultTipAmount(data.default_tip_amount || 1);
     }
+  };
+
+  const fetchBadgeStatus = async () => {
+    if (!user) return;
+    const status = await getUserBadgeStatus(user.id);
+    setHasActiveBadge(status.hasBadge);
+    setBadgeExpiresAt(status.expiresAt);
   };
 
   const handleSave = async () => {
@@ -141,6 +156,7 @@ const Settings = () => {
   const tabs = [
     { id: 'profile' as const, label: 'Profile Settings', icon: User },
     { id: 'tips' as const, label: 'Tips', icon: Wallet },
+    { id: 'badge' as const, label: 'Creator Badge', icon: Award },
   ];
 
   return (
@@ -370,6 +386,79 @@ const Settings = () => {
                   </div>
                 </div>
               )}
+
+              {activeTab === 'badge' && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-foreground mb-2">Creator Badge</h2>
+                    <p className="text-muted-foreground">Get verified and boost your content visibility</p>
+                  </div>
+
+                  <div className="space-y-6">
+                    {hasActiveBadge ? (
+                      <div className="p-6 rounded-xl bg-primary/10 border border-primary/20">
+                        <div className="flex items-center gap-4 mb-4">
+                          <CreatorBadge size="lg" showTooltip={false} />
+                          <div>
+                            <h3 className="font-semibold text-foreground">You're Verified!</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Your content gets boosted in the feed
+                            </p>
+                          </div>
+                        </div>
+                        {badgeExpiresAt && (
+                          <p className="text-sm text-muted-foreground">
+                            Expires: {badgeExpiresAt.toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-6 rounded-xl bg-muted/50 border border-border text-center">
+                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                          <Award className="w-8 h-8 text-primary" />
+                        </div>
+                        <h3 className="font-semibold text-foreground mb-2">Get Your Creator Badge</h3>
+                        <p className="text-sm text-muted-foreground mb-6">
+                          Stand out from the crowd! Verified creators get boosted visibility in the feed and a special badge on their profile.
+                        </p>
+                        <Button 
+                          className="rounded-xl h-12"
+                          onClick={() => setIsBadgeModalOpen(true)}
+                        >
+                          <Award className="w-4 h-4 mr-2" />
+                          Get Badge
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="pt-6 border-t border-border">
+                      <h4 className="font-medium text-foreground mb-3">Badge Benefits</h4>
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          Boosted content visibility in the feed
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          Verified creator badge on your profile
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          Priority in recommendations
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          Valid for 1 month
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </main>
         </div>
@@ -381,6 +470,15 @@ const Settings = () => {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUpload={handleUpload}
+      />
+
+      <BadgePurchaseModal
+        isOpen={isBadgeModalOpen}
+        onClose={() => setIsBadgeModalOpen(false)}
+        onSuccess={() => {
+          fetchBadgeStatus();
+          setIsBadgeModalOpen(false);
+        }}
       />
     </div>
   );
