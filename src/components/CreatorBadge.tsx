@@ -1,5 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import creatorBadgeImg from '@/assets/creator-badge.png';
 
 interface CreatorBadgeProps {
   size?: 'sm' | 'md' | 'lg';
@@ -16,9 +17,9 @@ const sizeClasses = {
 const CreatorBadge = ({ size = 'md', className, showTooltip = true }: CreatorBadgeProps) => {
   const badge = (
     <img 
-      src="/creator-badge.png" 
+      src={creatorBadgeImg} 
       alt="Verified Creator"
-      className={cn(sizeClasses[size], className)}
+      className={cn(sizeClasses[size], 'object-contain', className)}
     />
   );
 
