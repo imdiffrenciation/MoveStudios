@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import AdminBadges from "./pages/AdminBadges";
 import NotFound from "./pages/NotFound";
 import "./App.css";
 
@@ -74,6 +75,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/badges"
+              element={
+                <ProtectedRoute>
+                  <AdminBadges />
                 </ProtectedRoute>
               }
             />

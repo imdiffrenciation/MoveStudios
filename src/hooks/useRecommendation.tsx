@@ -295,6 +295,11 @@ export const useRecommendation = () => {
         // Quality (5%)
         score += (post.quality_score || 0) / 100 * 0.05;
 
+        // Creator Badge Boost (5% bonus) - check if creator has active badge
+        if ((post as any).has_active_badge) {
+          score += RECOMMENDATION_CONFIG.creator.boosts.creatorBadge / 100;
+        }
+
         return { ...post, _score: score };
       })
       .sort((a: any, b: any) => b._score - a._score);
