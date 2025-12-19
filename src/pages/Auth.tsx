@@ -70,7 +70,8 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        toast.success('Check your email to verify your account!');
+        toast.success('Account created successfully!');
+        navigate('/app');
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -207,11 +208,6 @@ const Auth = () => {
             </Button>
           </form>
           
-          {!isLogin && (
-            <p className="text-xs text-muted-foreground text-center">
-              A verification email will be sent to confirm your account
-            </p>
-          )}
           
           <div className="text-center text-sm">
             <button
