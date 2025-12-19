@@ -138,9 +138,12 @@ const AdminBadges = () => {
     }
   };
 
-  // Check if wallet is admin
-  const walletIsAdmin = connected && account && 
-    account.address.toString().toLowerCase() === ADMIN_ADDRESS.toLowerCase();
+  // Check if wallet is admin - normalize addresses by removing 0x prefix
+  const connectedAddr = account?.address?.toString().toLowerCase().replace('0x', '') || '';
+  const adminAddr = ADMIN_ADDRESS.toLowerCase().replace('0x', '');
+  const walletIsAdmin = connected && account && connectedAddr === adminAddr;
+  
+  console.log('AdminBadges check:', { connected, connectedAddr, adminAddr, walletIsAdmin });
 
   if (!walletIsAdmin) {
     return (

@@ -65,7 +65,10 @@ export const useBadge = () => {
   // Check if connected wallet is admin
   const isAdmin = useCallback(() => {
     if (!connected || !account) return false;
-    return account.address.toString().toLowerCase() === ADMIN_ADDRESS.toLowerCase();
+    const walletAddr = account.address.toString().toLowerCase().replace('0x', '');
+    const adminAddr = ADMIN_ADDRESS.toLowerCase().replace('0x', '');
+    console.log('Admin check:', { walletAddr, adminAddr, match: walletAddr === adminAddr });
+    return walletAddr === adminAddr;
   }, [connected, account]);
 
   // Get current badge amount from database
