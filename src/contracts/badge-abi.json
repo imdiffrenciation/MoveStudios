@@ -1,0 +1,92 @@
+{
+  "address": "0xa82655afd873cdf5e35d2dfa6ab6def067c3b5407ba3f61d32dc41b91ed66955",
+  "name": "badge_purchase",
+  "friends": [],
+  "exposed_functions": [
+    {
+      "name": "badge_payment",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": ["&signer"],
+      "return": []
+    },
+    {
+      "name": "change_badge_amount",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": ["&signer", "u64"],
+      "return": []
+    },
+    {
+      "name": "give_badge",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": ["&signer", "0x1::string::String"],
+      "return": []
+    },
+    {
+      "name": "init_badge_amount",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": ["&signer"],
+      "return": []
+    }
+  ],
+  "structs": [
+    {
+      "name": "Badge_amount",
+      "is_native": false,
+      "is_event": false,
+      "abilities": ["key"],
+      "generic_type_params": [],
+      "fields": [
+        { "name": "amount", "type": "u64" },
+        { "name": "treasury_address", "type": "address" }
+      ]
+    },
+    {
+      "name": "Badge_amount_changed",
+      "is_native": false,
+      "is_event": true,
+      "abilities": ["drop", "store"],
+      "generic_type_params": [],
+      "fields": [
+        { "name": "newest_amount", "type": "u64" }
+      ]
+    },
+    {
+      "name": "Badge_givaway",
+      "is_native": false,
+      "is_event": true,
+      "abilities": ["drop", "store", "key"],
+      "generic_type_params": [],
+      "fields": [
+        { "name": "creator_name", "type": "0x1::string::String" },
+        { "name": "timestamp", "type": "u64" },
+        { "name": "expiry_time", "type": "u64" }
+      ]
+    },
+    {
+      "name": "Verification",
+      "is_native": false,
+      "is_event": true,
+      "abilities": ["drop", "store"],
+      "generic_type_params": [],
+      "fields": [
+        { "name": "creator", "type": "address" },
+        { "name": "amount", "type": "u64" },
+        { "name": "is_paid", "type": "bool" },
+        { "name": "timestamp", "type": "u64" },
+        { "name": "expiry_time", "type": "u64" }
+      ]
+    }
+  ]
+}

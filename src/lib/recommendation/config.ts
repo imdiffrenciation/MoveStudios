@@ -22,7 +22,7 @@ export const RECOMMENDATION_CONFIG = {
       comment: 10,
       tip: 15,
       profileCheck: 3,
-      creatorBadge: 10, // Future NFT badge feature
+      creatorBadge: 25, // Verified creator badge boost
     },
     viralCoefficient: {
       timeWindowHours: 24,

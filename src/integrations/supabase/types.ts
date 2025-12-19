@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      badge_settings: {
+        Row: {
+          badge_amount: number
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          badge_amount?: number
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          badge_amount?: number
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      badges: {
+        Row: {
+          badge_type: string
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          issued_at: string
+          source: string
+          transaction_hash: string | null
+          user_id: string
+        }
+        Insert: {
+          badge_type?: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          issued_at?: string
+          source?: string
+          transaction_hash?: string | null
+          user_id: string
+        }
+        Update: {
+          badge_type?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          issued_at?: string
+          source?: string
+          transaction_hash?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           content: string
@@ -183,6 +237,7 @@ export type Database = {
           bio: string | null
           created_at: string
           default_tip_amount: number | null
+          has_active_badge: boolean | null
           id: string
           privy_user_id: string | null
           updated_at: string
@@ -194,6 +249,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           default_tip_amount?: number | null
+          has_active_badge?: boolean | null
           id: string
           privy_user_id?: string | null
           updated_at?: string
@@ -205,6 +261,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           default_tip_amount?: number | null
+          has_active_badge?: boolean | null
           id?: string
           privy_user_id?: string | null
           updated_at?: string
@@ -335,6 +392,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      deactivate_expired_badges: { Args: never; Returns: undefined }
       increment_view_count: { Args: { media_id: string }; Returns: undefined }
     }
     Enums: {
