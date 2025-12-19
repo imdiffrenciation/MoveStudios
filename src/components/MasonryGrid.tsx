@@ -81,7 +81,7 @@ const MediaCard = memo(({
               <img 
                 src={item.url} 
                 alt={item.title} 
-                className={`w-full h-auto transition-all duration-300 group-hover:scale-105 ${
+                className={`w-full h-auto transition-all duration-300 md:group-hover:scale-105 ${
                   imageLoaded ? 'opacity-100' : 'opacity-0'
                 } ${!imageLoaded ? 'absolute inset-0' : ''}`}
                 loading="lazy"
@@ -111,11 +111,12 @@ const MediaCard = memo(({
           </div>
         )}
 
-        {/* Hover Overlay */}
+        {/* Hover Overlay - hidden on mobile */}
         <div className={`
           absolute inset-0 bg-foreground/40 backdrop-blur-[2px]
           transition-opacity duration-200 flex items-end
-          ${isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+          hidden md:flex
+          ${isHovered ? 'md:opacity-100' : 'md:opacity-0 pointer-events-none'}
         `}>
           <div className="w-full p-3 flex items-center justify-between">
             <div className="flex items-center gap-3 text-background">
