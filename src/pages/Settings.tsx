@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, User, Wallet, DollarSign, Award } from 'lucide-react';
+import { ArrowLeft, User, Wallet, DollarSign, Award, Shield } from 'lucide-react';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import BadgePurchaseModal from '@/components/BadgePurchaseModal';
@@ -28,7 +28,7 @@ const profileSchema = z.object({
   avatarUrl: z.string().optional().or(z.literal('')),
 });
 
-type SettingsTab = 'profile' | 'tips' | 'badge';
+type SettingsTab = 'profile' | 'tips' | 'badge' | 'admin';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -45,8 +45,12 @@ const Settings = () => {
   const [showWalletConnect, setShowWalletConnect] = useState(false);
   const [hasActiveBadge, setHasActiveBadge] = useState(false);
   const [badgeExpiresAt, setBadgeExpiresAt] = useState<Date | null>(null);
-  const { getUserBadgeStatus } = useBadge();
+  const { getUserBadgeStatus, isAdmin, ADMIN_ADDRESS } = useBadge();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+
+  // Check if connected wallet is admin
+  const walletIsAdmin = connected && account && 
+    account.address.toString().toLowerCase().replace('0x', '') === ADMIN_ADDRESS.toLowerCase().replace('0x', '');
 
   useEffect(() => {
     if (user) {
@@ -157,6 +161,7 @@ const Settings = () => {
     { id: 'profile' as const, label: 'Profile Settings', icon: User },
     { id: 'tips' as const, label: 'Tips', icon: Wallet },
     { id: 'badge' as const, label: 'Creator Badge', icon: Award },
+    ...(walletIsAdmin ? [{ id: 'admin' as const, label: 'Admin Badges', icon: Shield }] : []),
   ];
 
   return (
@@ -456,6 +461,36 @@ const Settings = () => {
                         </li>
                       </ul>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'admin' && walletIsAdmin && (
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-foreground mb-2">Admin Badges</h2>
+                    <p className="text-muted-foreground">Manage badge settings and give badges to users</p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-3">
+                    <Shield className="w-6 h-6 text-primary" />
+                    <div>
+                      <p className="font-medium text-foreground">Admin Access Granted</p>
+                      <p className="text-sm text-muted-foreground">You have full badge management permissions</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Button 
+                      onClick={() => navigate('/admin/badges')}
+                      className="w-full rounded-xl h-12"
+                    >
+                      <Shield className="w-4 h-4 mr-2" />
+                      Open Full Admin Panel
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Access init badge, give badges, and change badge prices
+                    </p>
                   </div>
                 </div>
               )}
