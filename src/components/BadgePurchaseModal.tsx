@@ -8,7 +8,6 @@ import { useBadge } from '@/hooks/useBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { WalletSelectionModal } from '@/components/wallet/WalletSelectionModal';
 import { useToast } from '@/hooks/use-toast';
-import creatorBadgeImg from '@/assets/creator-badge.png';
 
 interface BadgePurchaseModalProps {
   isOpen: boolean;
@@ -122,11 +121,9 @@ const BadgePurchaseModal = ({ isOpen, onClose, onSuccess }: BadgePurchaseModalPr
           {/* Badge Preview */}
           <div className="flex flex-col items-center p-6 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20">
             <div className="mb-4">
-              <img 
-                src={creatorBadgeImg} 
-                alt="Creator Badge" 
-                className="w-20 h-20 object-contain"
-              />
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                <BadgeCheck className="w-10 h-10 text-primary-foreground" />
+              </div>
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-1">Verified Creator</h3>
             <p className="text-sm text-muted-foreground text-center">
