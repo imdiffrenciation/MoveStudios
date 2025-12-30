@@ -221,10 +221,10 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
 
               {/* Like */}
               <button onClick={handleLike} className="flex flex-col items-center">
-                <div className={`p-2 rounded-full ${isLiked(currentItem.id) ? 'text-red-500' : 'text-white'}`}>
+                <div className={`p-2 rounded-full ${isLiked(currentItem.id) ? 'text-yellow-400' : 'text-white'}`}>
                   <Heart className="w-7 h-7" fill={isLiked(currentItem.id) ? 'currentColor' : 'none'} />
                 </div>
-                <span className="text-white text-xs">{getLikeCount(currentItem.id) || currentItem.likes}</span>
+                <span className="text-white text-xs">{getLikeCount(currentItem.id)}</span>
               </button>
 
               {/* Comment */}
@@ -279,17 +279,6 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
               )}
             </div>
 
-            {/* Progress indicator */}
-            <div className="absolute top-16 left-0 right-0 px-4 z-10">
-              <div className="flex gap-1">
-                {feedItems.slice(0, Math.min(10, feedItems.length)).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`h-0.5 flex-1 rounded-full ${idx <= currentIndex ? 'bg-white' : 'bg-white/30'}`}
-                  />
-                ))}
-              </div>
-            </div>
           </>
         )}
       </div>
