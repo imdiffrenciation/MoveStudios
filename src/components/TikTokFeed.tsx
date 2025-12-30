@@ -27,6 +27,7 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [slideDirection, setSlideDirection] = useState<'up' | 'down' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
@@ -50,12 +51,20 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
     }
   }, [currentIndex, currentItem?.id, user]);
 
-  // Handle scroll to change items
+  // Handle scroll to change items with animation
   const handleScroll = useCallback((direction: 'up' | 'down') => {
     if (direction === 'down' && currentIndex < feedItems.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setSlideDirection('up');
+      setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+        setSlideDirection(null);
+      }, 150);
     } else if (direction === 'up' && currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
+      setSlideDirection('down');
+      setTimeout(() => {
+        setCurrentIndex(prev => prev - 1);
+        setSlideDirection(null);
+      }, 150);
     }
   }, [currentIndex, feedItems.length]);
 
@@ -189,7 +198,13 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
           <>
             {/* Media */}
             <div 
-              className="absolute inset-0 flex items-center justify-center bg-black"
+              className={`absolute inset-0 flex items-center justify-center bg-black transition-all duration-200 ease-out ${
+                slideDirection === 'up' 
+                  ? '-translate-y-full opacity-0' 
+                  : slideDirection === 'down' 
+                    ? 'translate-y-full opacity-0' 
+                    : 'translate-y-0 opacity-100'
+              }`}
               onClick={togglePlayPause}
             >
               {currentItem.type === 'video' ? (
