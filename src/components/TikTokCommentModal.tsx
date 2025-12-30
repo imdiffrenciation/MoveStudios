@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, X, SlidersHorizontal } from 'lucide-react';
+import { Send, SlidersHorizontal } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -30,10 +30,15 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [translateY, setTranslateY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartY = useRef(0);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && mediaId) {
       fetchComments();
+      setTranslateY(0);
     }
   }, [isOpen, mediaId]);
 
@@ -103,92 +108,146 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
     }
   };
 
+  // Swipe down gesture handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartY.current;
+    
+    // Only allow dragging down (positive diff)
+    if (diff > 0) {
+      setTranslateY(diff);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    
+    // If dragged more than 100px, close the modal
+    if (translateY > 100) {
+      onClose();
+    } else {
+      // Snap back
+      setTranslateY(0);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-x-0 bottom-0 z-50 bg-background rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300"
-      style={{ height: '60vh' }}
-    >
-      {/* Drag handle - tap to close */}
-      <button 
+    <>
+      {/* Backdrop - tap to close */}
+      <div 
+        className="fixed inset-0 z-40 bg-black/20"
         onClick={onClose}
-        className="w-full flex justify-center pt-3 pb-2 cursor-pointer"
+      />
+      
+      {/* Modal */}
+      <div 
+        ref={modalRef}
+        className="fixed inset-x-0 bottom-0 z-50 bg-background rounded-t-3xl shadow-2xl"
+        style={{ 
+          height: '60vh',
+          transform: `translateY(${translateY}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+        }}
       >
-        <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
-      </button>
+        {/* Drag handle area - swipe down to close */}
+        <div 
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="w-full cursor-grab active:cursor-grabbing"
+        >
+          <button 
+            onClick={onClose}
+            className="w-full flex justify-center pt-3 pb-2"
+          >
+            <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
+          </button>
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pb-3 border-b border-border">
-        <h2 className="text-lg font-semibold">Comments {comments.length}</h2>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <SlidersHorizontal className="w-5 h-5" />
-        </Button>
-      </div>
-
-      {/* Comments list */}
-      <ScrollArea className="flex-1" style={{ height: 'calc(60vh - 120px)' }}>
-        <div className="p-4">
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : comments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No comments yet. Be the first!
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  <Avatar className="w-9 h-9 flex-shrink-0">
-                    <AvatarImage src={comment.avatar_url || undefined} />
-                    <AvatarFallback>{comment.username[0]?.toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">@{comment.username}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                      </span>
-                    </div>
-                    <p className="text-sm text-foreground mt-1 break-words">
-                      {comment.content}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-
-      {/* Input area */}
-      {user && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8 flex-shrink-0">
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-            <Input
-              placeholder="Add a comment..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()}
-              className="flex-1 bg-muted border-0"
-            />
-            <Button 
-              size="icon" 
-              variant="ghost"
-              onClick={handleSubmitComment}
-              disabled={!newComment.trim() || submitting}
-            >
-              <Send className="w-5 h-5" />
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 pb-3 border-b border-border">
+            <h2 className="text-lg font-semibold">Comments {comments.length}</h2>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <SlidersHorizontal className="w-5 h-5" />
             </Button>
           </div>
         </div>
-      )}
-    </div>
+
+        {/* Comments list */}
+        <ScrollArea className="flex-1" style={{ height: 'calc(60vh - 120px)' }}>
+          <div className="p-4">
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground animate-fade-in">
+                No comments yet. Be the first!
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {comments.map((comment, index) => (
+                  <div 
+                    key={comment.id} 
+                    className="flex gap-3 animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <Avatar className="w-9 h-9 flex-shrink-0">
+                      <AvatarImage src={comment.avatar_url || undefined} />
+                      <AvatarFallback>{comment.username[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">@{comment.username}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground mt-1 break-words">
+                        {comment.content}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Input area */}
+        {user && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
+            <div className="flex items-center gap-3">
+              <Avatar className="w-8 h-8 flex-shrink-0">
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+              <Input
+                placeholder="Add a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()}
+                className="flex-1 bg-muted border-0"
+              />
+              <Button 
+                size="icon" 
+                variant="ghost"
+                onClick={handleSubmitComment}
+                disabled={!newComment.trim() || submitting}
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
