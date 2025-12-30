@@ -63,7 +63,7 @@ const Index = () => {
     return () => {
       cancelled = true;
     };
-  }, [mediaItems, user, userPreferences, getRecommendedPosts]);
+  }, [mediaItems, user, getRecommendedPosts]);
 
   // Memoize filtered media to prevent unnecessary recalculations
   const filteredMedia = useMemo(() => {
