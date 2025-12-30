@@ -31,14 +31,14 @@ const Interests = () => {
 
     if (success) {
       toast.success('Interests saved!');
-      navigate('/app');
+      navigate('/app', { replace: true });
     } else {
       toast.error('Failed to save interests');
     }
   };
 
   const handleSkip = () => {
-    navigate('/app');
+    navigate('/app', { replace: true });
   };
 
   return (

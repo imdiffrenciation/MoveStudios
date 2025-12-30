@@ -17,9 +17,13 @@ export const useUserInterests = () => {
 
   const loadInterests = useCallback(async () => {
     if (!user) {
+      setInterests([]);
+      setHasInterests(false);
       setLoading(false);
       return;
     }
+
+    setLoading(true);
 
     try {
       const { data, error } = await supabase
@@ -28,7 +32,7 @@ export const useUserInterests = () => {
         .eq('user_id', user.id);
 
       if (error) throw error;
-      
+
       const userInterests = data?.map(d => d.interest) || [];
       setInterests(userInterests);
       setHasInterests(userInterests.length > 0);
