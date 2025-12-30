@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,26 +20,22 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { media, loading, trackView } = useMedia();
-  const { recordInteraction, markAsSeen, getRecommendedPosts } = useRecommendation();
+  const { recordInteraction, markAsSeen } = useRecommendation();
   const { checkLikeStatus, checkSaveStatus, toggleLike, toggleSave, isLiked, getLikeCount, isSaved } = useTikTokInteractions();
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [feedItems, setFeedItems] = useState<MediaItem[]>([]);
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
-  // Load recommended posts when media is available
-  useEffect(() => {
-    if (media.length > 0 && feedItems.length === 0) {
-      const loadRecommendedFeed = async () => {
-        const recommended = await getRecommendedPosts(media as any);
-        setFeedItems(recommended as unknown as MediaItem[]);
-      };
-      loadRecommendedFeed();
-    }
+  // Use media directly - shuffled for variety
+  const feedItems = useMemo(() => {
+    if (media.length === 0) return [];
+    // Simple shuffle for variety
+    const shuffled = [...media].sort(() => Math.random() - 0.5);
+    return shuffled;
   }, [media]);
 
   const currentItem = feedItems[currentIndex];
@@ -52,7 +48,7 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
       checkLikeStatus(currentItem.id);
       checkSaveStatus(currentItem.id);
     }
-  }, [currentIndex, currentItem, user, trackView, markAsSeen, checkLikeStatus, checkSaveStatus]);
+  }, [currentIndex, currentItem?.id, user]);
 
   // Handle scroll to change items
   const handleScroll = useCallback((direction: 'up' | 'down') => {
