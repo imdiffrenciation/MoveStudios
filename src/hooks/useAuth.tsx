@@ -29,30 +29,63 @@ export const useAuth = () => {
   }, []);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkOnboardingStatus(session.user.id);
-      } else {
-        setOnboardingCompleted(null);
-      }
+    let cancelled = false;
+
+    // Never allow the app to stay stuck in an infinite "auth loading" state.
+    const watchdog = window.setTimeout(() => {
+      if (cancelled) return;
+      console.warn('Auth init timeout: forcing loading=false');
+      setUser(null);
+      setOnboardingCompleted(null);
       setLoading(false);
-    });
+    }, 8000);
+
+    const init = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (cancelled) return;
+
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await checkOnboardingStatus(session.user.id);
+        } else {
+          setOnboardingCompleted(null);
+        }
+      } catch (error) {
+        console.error('Error getting session:', error);
+        if (!cancelled) {
+          setUser(null);
+          setOnboardingCompleted(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+        window.clearTimeout(watchdog);
+      }
+    };
+
+    init();
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (cancelled) return;
       setUser(session?.user ?? null);
       if (session?.user) {
-        checkOnboardingStatus(session.user.id);
+        await checkOnboardingStatus(session.user.id);
       } else {
         setOnboardingCompleted(null);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(watchdog);
+      subscription.unsubscribe();
+    };
   }, [checkOnboardingStatus]);
 
   const signOut = async () => {
