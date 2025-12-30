@@ -70,7 +70,12 @@ const TikTokCard = ({
   };
 
   const handleLike = async () => {
-    if (!user) return;
+    // Let the hook handle signed-out UX (toast) without mutating local counts.
+    if (!user) {
+      await toggleLike();
+      return;
+    }
+
     await toggleLike();
     setLocalLikes(prev => isLiked ? prev - 1 : prev + 1);
   };
