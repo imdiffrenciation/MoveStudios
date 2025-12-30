@@ -30,8 +30,9 @@ const TikTokCard = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isLiked, toggleLike } = useLikes(item.id);
-  const { isSaved, toggleSave } = useSaves(item.id);
+  // Only subscribe for the active item to avoid dozens of realtime channels on mobile.
+  const { isLiked, toggleLike } = useLikes(item.id, isActive);
+  const { isSaved, toggleSave } = useSaves(item.id, isActive);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);

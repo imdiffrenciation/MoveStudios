@@ -3,14 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export const useLikes = (mediaId: string) => {
+export const useLikes = (mediaId: string, enabled: boolean = true) => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (mediaId) {
+    if (mediaId && enabled) {
       checkIfLiked();
       fetchLikesCount();
 
@@ -38,7 +38,7 @@ export const useLikes = (mediaId: string) => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user, mediaId]);
+  }, [user, mediaId, enabled]);
 
   const checkIfLiked = async () => {
     if (!user) return;
