@@ -13,13 +13,13 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useMedia } from '@/hooks/useMedia';
 import { useAuth } from '@/hooks/useAuth';
-import { useUserInterests } from '@/hooks/useUserInterests';
+
 import type { MediaItem } from '@/types';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { hasInterests, loading: interestsLoading } = useUserInterests();
+  
   const { media: mediaItems, loading, trackView, loadMore, hasMore } = useMedia();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
@@ -32,13 +32,6 @@ const Index = () => {
   
   // Double tap detection for home button
   const lastHomeTap = useRef<number>(0);
-
-  // Redirect to interests page if user hasn't selected any
-  useEffect(() => {
-    if (!interestsLoading && user && !hasInterests) {
-      navigate('/interests');
-    }
-  }, [hasInterests, interestsLoading, user, navigate]);
 
   // Memoize filtered media to prevent unnecessary recalculations
   const filteredMedia = useMemo(() => {
