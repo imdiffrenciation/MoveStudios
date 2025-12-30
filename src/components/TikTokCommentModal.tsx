@@ -110,22 +110,20 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
       className="fixed inset-x-0 bottom-0 z-50 bg-background rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300"
       style={{ height: '60vh' }}
     >
-      {/* Drag handle */}
-      <div className="flex justify-center pt-3 pb-2">
+      {/* Drag handle - tap to close */}
+      <button 
+        onClick={onClose}
+        className="w-full flex justify-center pt-3 pb-2 cursor-pointer"
+      >
         <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
-      </div>
+      </button>
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 pb-3 border-b border-border">
         <h2 className="text-lg font-semibold">Comments {comments.length}</h2>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <SlidersHorizontal className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <SlidersHorizontal className="w-5 h-5" />
+        </Button>
       </div>
 
       {/* Comments list */}

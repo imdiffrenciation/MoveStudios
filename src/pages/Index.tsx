@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, User, Settings, Menu } from 'lucide-react';
@@ -18,6 +18,7 @@ import type { MediaItem } from '@/types';
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   
   const { media: mediaItems, loading, trackView, loadMore, hasMore } = useMedia();
@@ -32,6 +33,15 @@ const Index = () => {
   
   // Double tap detection for home button
   const lastHomeTap = useRef<number>(0);
+
+  // Restore TikTok feed if navigating back from profile
+  useEffect(() => {
+    if (location.state?.fromTikTok) {
+      setShowTikTokFeed(true);
+      // Clear the state so refreshing doesn't re-trigger
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   // Memoize filtered media to prevent unnecessary recalculations
   const filteredMedia = useMemo(() => {
