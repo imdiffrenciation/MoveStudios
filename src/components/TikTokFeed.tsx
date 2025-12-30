@@ -33,14 +33,14 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
 
   // Load recommended posts when media is available
   useEffect(() => {
-    const loadRecommendedFeed = async () => {
-      if (media.length > 0) {
+    if (media.length > 0 && feedItems.length === 0) {
+      const loadRecommendedFeed = async () => {
         const recommended = await getRecommendedPosts(media as any);
         setFeedItems(recommended as unknown as MediaItem[]);
-      }
-    };
-    loadRecommendedFeed();
-  }, [media, getRecommendedPosts]);
+      };
+      loadRecommendedFeed();
+    }
+  }, [media]);
 
   const currentItem = feedItems[currentIndex];
 
