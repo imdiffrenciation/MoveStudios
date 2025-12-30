@@ -27,9 +27,12 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [slideDirection, setSlideDirection] = useState<'up' | 'down' | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const touchStartY = useRef(0);
+  const isDragging = useRef(false);
 
   // Use media directly - shuffled for variety
   const feedItems = useMemo(() => {
@@ -40,6 +43,8 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
   }, [media]);
 
   const currentItem = feedItems[currentIndex];
+  const nextItem = feedItems[currentIndex + 1];
+  const prevItem = feedItems[currentIndex - 1];
 
   // Track view, mark as seen, and load interaction states when item changes
   useEffect(() => {
@@ -51,47 +56,87 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
     }
   }, [currentIndex, currentItem?.id, user]);
 
-  // Handle scroll to change items with animation
-  const handleScroll = useCallback((direction: 'up' | 'down') => {
-    if (direction === 'down' && currentIndex < feedItems.length - 1) {
-      setSlideDirection('up');
-      setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-        setSlideDirection(null);
-      }, 150);
-    } else if (direction === 'up' && currentIndex > 0) {
-      setSlideDirection('down');
-      setTimeout(() => {
-        setCurrentIndex(prev => prev - 1);
-        setSlideDirection(null);
-      }, 150);
-    }
-  }, [currentIndex, feedItems.length]);
-
-  // Touch handling for swipe - disabled when comment modal is open
-  const touchStartY = useRef(0);
+  // Touch handling for native swipe feel
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (commentModalOpen) return;
+    if (commentModalOpen || isAnimating) return;
     touchStartY.current = e.touches[0].clientY;
+    isDragging.current = true;
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (commentModalOpen) return;
-    const touchEndY = e.changedTouches[0].clientY;
-    const diff = touchStartY.current - touchEndY;
-    if (Math.abs(diff) > 50) {
-      handleScroll(diff > 0 ? 'down' : 'up');
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current || commentModalOpen || isAnimating) return;
+    const currentY = e.touches[0].clientY;
+    const diff = touchStartY.current - currentY;
+    
+    // Apply resistance at boundaries
+    if ((diff > 0 && currentIndex >= feedItems.length - 1) || 
+        (diff < 0 && currentIndex <= 0)) {
+      setDragOffset(-diff * 0.3); // More resistance at edges
+    } else {
+      setDragOffset(-diff);
     }
   };
 
-  // Wheel handling for desktop - disabled when comment modal is open
+  const handleTouchEnd = () => {
+    if (!isDragging.current || commentModalOpen) return;
+    isDragging.current = false;
+    
+    const threshold = window.innerHeight * 0.15; // 15% of screen height
+    
+    if (Math.abs(dragOffset) > threshold) {
+      // Animate to next/prev
+      const direction = dragOffset < 0 ? 1 : -1;
+      const targetOffset = direction > 0 ? -window.innerHeight : window.innerHeight;
+      
+      if ((direction > 0 && currentIndex < feedItems.length - 1) ||
+          (direction < 0 && currentIndex > 0)) {
+        setIsAnimating(true);
+        setDragOffset(targetOffset);
+        
+        setTimeout(() => {
+          setCurrentIndex(prev => prev + direction);
+          setDragOffset(0);
+          setIsAnimating(false);
+        }, 250);
+      } else {
+        // Snap back at boundaries
+        setDragOffset(0);
+      }
+    } else {
+      // Snap back
+      setDragOffset(0);
+    }
+  };
+
+  // Wheel handling for desktop
+  const wheelTimeout = useRef<NodeJS.Timeout | null>(null);
   const handleWheel = useCallback((e: WheelEvent) => {
-    if (commentModalOpen) return;
+    if (commentModalOpen || isAnimating) return;
     e.preventDefault();
+    
+    // Debounce wheel events
+    if (wheelTimeout.current) return;
+    
     if (Math.abs(e.deltaY) > 30) {
-      handleScroll(e.deltaY > 0 ? 'down' : 'up');
+      const direction = e.deltaY > 0 ? 1 : -1;
+      
+      if ((direction > 0 && currentIndex < feedItems.length - 1) ||
+          (direction < 0 && currentIndex > 0)) {
+        setIsAnimating(true);
+        setDragOffset(direction > 0 ? -window.innerHeight : window.innerHeight);
+        
+        setTimeout(() => {
+          setCurrentIndex(prev => prev + direction);
+          setDragOffset(0);
+          setIsAnimating(false);
+        }, 250);
+      }
+      
+      wheelTimeout.current = setTimeout(() => {
+        wheelTimeout.current = null;
+      }, 300);
     }
-  }, [handleScroll, commentModalOpen]);
+  }, [commentModalOpen, isAnimating, currentIndex, feedItems.length]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -180,8 +225,9 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
   return (
     <div 
       ref={containerRef}
-      className="fixed inset-0 bg-black z-50 overflow-hidden"
+      className="fixed inset-0 bg-black z-50 overflow-hidden touch-none"
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {/* Back button */}
@@ -192,123 +238,156 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
         ← Back
       </button>
 
-      {/* Content */}
-      <div className="relative w-full h-full flex items-center justify-center">
+      {/* Content - stacked slides */}
+      <div className="relative w-full h-full overflow-hidden">
+        {/* Previous item (above) */}
+        {prevItem && (
+          <div 
+            className="absolute inset-0 flex items-center justify-center bg-black"
+            style={{ 
+              transform: `translateY(calc(-100% + ${dragOffset}px))`,
+              transition: isDragging.current ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+            }}
+          >
+            {prevItem.type === 'video' ? (
+              <video src={prevItem.url} className="max-w-full max-h-full object-contain" muted playsInline />
+            ) : (
+              <img src={prevItem.url} alt={prevItem.title} className="max-w-full max-h-full object-contain" />
+            )}
+          </div>
+        )}
+
+        {/* Current item */}
         {currentItem && (
-          <>
-            {/* Media */}
-            <div 
-              className={`absolute inset-0 flex items-center justify-center bg-black transition-all duration-200 ease-out ${
-                slideDirection === 'up' 
-                  ? '-translate-y-full opacity-0' 
-                  : slideDirection === 'down' 
-                    ? 'translate-y-full opacity-0' 
-                    : 'translate-y-0 opacity-100'
-              }`}
-              onClick={togglePlayPause}
-            >
-              {currentItem.type === 'video' ? (
-                <video
-                  ref={el => el && videoRefs.current.set(currentItem.id, el)}
-                  src={currentItem.url}
-                  className="max-w-full max-h-full object-contain"
-                  loop
-                  playsInline
-                  muted={isMuted}
-                  autoPlay
-                />
-              ) : (
-                <img
-                  src={currentItem.url}
-                  alt={currentItem.title}
-                  className="max-w-full max-h-full object-contain"
-                />
-              )}
+          <div 
+            className="absolute inset-0 flex items-center justify-center bg-black"
+            style={{ 
+              transform: `translateY(${dragOffset}px)`,
+              transition: isDragging.current ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+            }}
+            onClick={togglePlayPause}
+          >
+            {currentItem.type === 'video' ? (
+              <video
+                ref={el => el && videoRefs.current.set(currentItem.id, el)}
+                src={currentItem.url}
+                className="max-w-full max-h-full object-contain"
+                loop
+                playsInline
+                muted={isMuted}
+                autoPlay
+              />
+            ) : (
+              <img
+                src={currentItem.url}
+                alt={currentItem.title}
+                className="max-w-full max-h-full object-contain"
+              />
+            )}
 
-              {/* Play/Pause overlay */}
-              {isPaused && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <Play className="w-16 h-16 text-white/80" fill="white" />
+            {/* Play/Pause overlay */}
+            {isPaused && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                <Play className="w-16 h-16 text-white/80" fill="white" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Next item (below) */}
+        {nextItem && (
+          <div 
+            className="absolute inset-0 flex items-center justify-center bg-black"
+            style={{ 
+              transform: `translateY(calc(100% + ${dragOffset}px))`,
+              transition: isDragging.current ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+            }}
+          >
+            {nextItem.type === 'video' ? (
+              <video src={nextItem.url} className="max-w-full max-h-full object-contain" muted playsInline />
+            ) : (
+              <img src={nextItem.url} alt={nextItem.title} className="max-w-full max-h-full object-contain" />
+            )}
+          </div>
+        )}
+
+        {/* Right side actions */}
+        {currentItem && (
+          <div className="absolute right-3 bottom-32 flex flex-col items-center gap-5 z-10">
+            {/* Creator avatar */}
+            <button onClick={handleCreatorClick} className="relative">
+              <Avatar className="w-12 h-12 border-2 border-white">
+                <AvatarImage src={currentItem.creatorAvatarUrl} />
+                <AvatarFallback>{currentItem.creator[0]?.toUpperCase()}</AvatarFallback>
+              </Avatar>
+              {currentItem.hasActiveBadge && (
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
+                  <CreatorBadge size="sm" />
                 </div>
               )}
-            </div>
+            </button>
 
-            {/* Right side actions */}
-            <div className="absolute right-3 bottom-32 flex flex-col items-center gap-5 z-10">
-              {/* Creator avatar */}
-              <button onClick={handleCreatorClick} className="relative">
-                <Avatar className="w-12 h-12 border-2 border-white">
-                  <AvatarImage src={currentItem.creatorAvatarUrl} />
-                  <AvatarFallback>{currentItem.creator[0]?.toUpperCase()}</AvatarFallback>
-                </Avatar>
-                {currentItem.hasActiveBadge && (
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
-                    <CreatorBadge size="sm" />
-                  </div>
-                )}
-              </button>
+            {/* Like */}
+            <button onClick={handleLike} className="flex flex-col items-center">
+              <div className={`p-2 rounded-full ${isLiked(currentItem.id) ? 'text-yellow-400' : 'text-white'}`}>
+                <Heart className="w-7 h-7" fill={isLiked(currentItem.id) ? 'currentColor' : 'none'} />
+              </div>
+              <span className="text-white text-xs">{getLikeCount(currentItem.id)}</span>
+            </button>
 
-              {/* Like */}
-              <button onClick={handleLike} className="flex flex-col items-center">
-                <div className={`p-2 rounded-full ${isLiked(currentItem.id) ? 'text-yellow-400' : 'text-white'}`}>
-                  <Heart className="w-7 h-7" fill={isLiked(currentItem.id) ? 'currentColor' : 'none'} />
-                </div>
-                <span className="text-white text-xs">{getLikeCount(currentItem.id)}</span>
-              </button>
+            {/* Comment */}
+            <button onClick={() => setCommentModalOpen(true)} className="flex flex-col items-center">
+              <div className="p-2 text-white">
+                <MessageCircle className="w-7 h-7" />
+              </div>
+              <span className="text-white text-xs">Comments</span>
+            </button>
 
-              {/* Comment */}
-              <button onClick={() => setCommentModalOpen(true)} className="flex flex-col items-center">
+            {/* Save */}
+            <button onClick={handleSave} className="flex flex-col items-center">
+              <div className={`p-2 ${isSaved(currentItem.id) ? 'text-yellow-400' : 'text-white'}`}>
+                <Bookmark className="w-7 h-7" fill={isSaved(currentItem.id) ? 'currentColor' : 'none'} />
+              </div>
+              <span className="text-white text-xs">Save</span>
+            </button>
+
+            {/* Share */}
+            <button onClick={handleShare} className="flex flex-col items-center">
+              <div className="p-2 text-white">
+                <Share2 className="w-7 h-7" />
+              </div>
+              <span className="text-white text-xs">Share</span>
+            </button>
+
+            {/* Volume (for videos) */}
+            {currentItem.type === 'video' && (
+              <button onClick={() => setIsMuted(!isMuted)} className="flex flex-col items-center">
                 <div className="p-2 text-white">
-                  <MessageCircle className="w-7 h-7" />
+                  {isMuted ? <VolumeX className="w-7 h-7" /> : <Volume2 className="w-7 h-7" />}
                 </div>
-                <span className="text-white text-xs">Comments</span>
               </button>
+            )}
+          </div>
+        )}
 
-              {/* Save */}
-              <button onClick={handleSave} className="flex flex-col items-center">
-                <div className={`p-2 ${isSaved(currentItem.id) ? 'text-yellow-400' : 'text-white'}`}>
-                  <Bookmark className="w-7 h-7" fill={isSaved(currentItem.id) ? 'currentColor' : 'none'} />
-                </div>
-                <span className="text-white text-xs">Save</span>
-              </button>
-
-              {/* Share */}
-              <button onClick={handleShare} className="flex flex-col items-center">
-                <div className="p-2 text-white">
-                  <Share2 className="w-7 h-7" />
-                </div>
-                <span className="text-white text-xs">Share</span>
-              </button>
-
-              {/* Volume (for videos) */}
-              {currentItem.type === 'video' && (
-                <button onClick={() => setIsMuted(!isMuted)} className="flex flex-col items-center">
-                  <div className="p-2 text-white">
-                    {isMuted ? <VolumeX className="w-7 h-7" /> : <Volume2 className="w-7 h-7" />}
-                  </div>
-                </button>
-              )}
-            </div>
-
-            {/* Bottom info */}
-            <div className="absolute left-3 right-20 bottom-8 z-10">
-              <button onClick={handleCreatorClick} className="flex items-center gap-2 mb-2">
-                <span className="text-white font-semibold">@{currentItem.creator}</span>
-                {currentItem.hasActiveBadge && <CreatorBadge size="sm" />}
-              </button>
-              <p className="text-white/90 text-sm mb-2 line-clamp-2">{currentItem.title}</p>
-              {currentItem.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {currentItem.tags.slice(0, 3).map((tag) => (
-                    <span key={tag} className="text-white/70 text-xs">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-          </>
+        {/* Bottom info */}
+        {currentItem && (
+          <div className="absolute left-3 right-20 bottom-8 z-10">
+            <button onClick={handleCreatorClick} className="flex items-center gap-2 mb-2">
+              <span className="text-white font-semibold">@{currentItem.creator}</span>
+              {currentItem.hasActiveBadge && <CreatorBadge size="sm" />}
+            </button>
+            <p className="text-white/90 text-sm mb-2 line-clamp-2">{currentItem.title}</p>
+            {currentItem.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {currentItem.tags.slice(0, 3).map((tag) => (
+                  <span key={tag} className="text-white/70 text-xs">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

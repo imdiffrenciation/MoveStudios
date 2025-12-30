@@ -35,12 +35,8 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
   const touchStartY = useRef(0);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (isOpen && mediaId) {
-      fetchComments();
-      setTranslateY(0);
-    }
-  }, [isOpen, mediaId]);
+  const [isClosing, setIsClosing] = useState(false);
+  const modalHeight = typeof window !== 'undefined' ? window.innerHeight * 0.6 : 400;
 
   const fetchComments = async () => {
     setLoading(true);
@@ -108,6 +104,24 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
     }
   };
 
+  useEffect(() => {
+    if (isOpen && mediaId) {
+      fetchComments();
+      setTranslateY(0);
+      setIsClosing(false);
+    }
+  }, [isOpen, mediaId]);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTranslateY(modalHeight);
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+      setTranslateY(0);
+    }, 300);
+  };
+
   // Swipe down gesture handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -119,22 +133,21 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
     const currentY = e.touches[0].clientY;
     const diff = currentY - touchStartY.current;
     
-    // Only allow dragging down (positive diff) with resistance
+    // Only allow dragging down (positive diff) - follows finger directly
     if (diff > 0) {
-      // Add resistance - the further you drag, the harder it gets
-      const resistance = 0.5;
-      setTranslateY(diff * resistance);
+      setTranslateY(diff);
     }
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
     
-    // If dragged more than 80px (after resistance), close the modal
-    if (translateY > 80) {
-      onClose();
+    // If dragged past threshold (25% of modal height), auto-close
+    const threshold = modalHeight * 0.25;
+    if (translateY > threshold) {
+      handleClose();
     } else {
-      // Snap back
+      // Snap back smoothly
       setTranslateY(0);
     }
   };
@@ -145,18 +158,25 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
     <>
       {/* Backdrop - tap to close */}
       <div 
-        className="fixed inset-0 z-40 bg-black/20"
-        onClick={onClose}
+        className={`fixed inset-0 z-40 transition-opacity duration-300 ${
+          isClosing ? 'bg-transparent' : 'bg-black/30'
+        }`}
+        style={{ 
+          opacity: isClosing ? 0 : Math.max(0, 1 - translateY / modalHeight),
+        }}
+        onClick={handleClose}
       />
       
-      {/* Modal */}
+      {/* Modal - slides up from bottom */}
       <div 
         ref={modalRef}
-        className="fixed inset-x-0 bottom-0 z-50 bg-background rounded-t-3xl shadow-2xl"
+        className={`fixed inset-x-0 bottom-0 z-50 bg-background rounded-t-3xl shadow-2xl ${
+          !isOpen ? 'translate-y-full' : ''
+        }`}
         style={{ 
           height: '60vh',
           transform: `translateY(${translateY}px)`,
-          transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
         }}
       >
         {/* Drag handle area - swipe down to close */}
@@ -164,10 +184,10 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="w-full cursor-grab active:cursor-grabbing"
+          className="w-full cursor-grab active:cursor-grabbing touch-none"
         >
           <button 
-            onClick={onClose}
+            onClick={handleClose}
             className="w-full flex justify-center pt-3 pb-2"
           >
             <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
