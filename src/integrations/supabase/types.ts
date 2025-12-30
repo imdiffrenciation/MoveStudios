@@ -239,6 +239,7 @@ export type Database = {
           default_tip_amount: number | null
           has_active_badge: boolean | null
           id: string
+          onboarding_completed: boolean | null
           privy_user_id: string | null
           updated_at: string
           username: string
@@ -251,6 +252,7 @@ export type Database = {
           default_tip_amount?: number | null
           has_active_badge?: boolean | null
           id: string
+          onboarding_completed?: boolean | null
           privy_user_id?: string | null
           updated_at?: string
           username: string
@@ -263,6 +265,7 @@ export type Database = {
           default_tip_amount?: number | null
           has_active_badge?: boolean | null
           id?: string
+          onboarding_completed?: boolean | null
           privy_user_id?: string | null
           updated_at?: string
           username?: string
@@ -362,6 +365,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_interests: {
+        Row: {
+          created_at: string
+          id: string
+          interest: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interest: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interest?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_preferences: {
         Row: {
