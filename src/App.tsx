@@ -12,14 +12,13 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import AdminBadges from "./pages/AdminBadges";
-import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import "./App.css";
 
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading, onboardingCompleted } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -31,29 +30,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const OnboardingRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading, onboardingCompleted } = useAuth();
-
-  if (loading || onboardingCompleted === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // Redirect to onboarding if not completed
-  if (onboardingCompleted === false) {
-    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;
@@ -71,43 +47,35 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route
-              path="/onboarding"
-              element={
-                <ProtectedRoute>
-                  <Onboarding />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/app"
               element={
-                <OnboardingRoute>
+                <ProtectedRoute>
                   <Index />
-                </OnboardingRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/profile"
               element={
-                <OnboardingRoute>
+                <ProtectedRoute>
                   <Profile />
-                </OnboardingRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/profile/:userId"
               element={
-                <OnboardingRoute>
+                <ProtectedRoute>
                   <Profile />
-                </OnboardingRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/settings"
               element={
-                <OnboardingRoute>
+                <ProtectedRoute>
                   <Settings />
-                </OnboardingRoute>
+                </ProtectedRoute>
               }
             />
             <Route
