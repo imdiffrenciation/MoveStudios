@@ -67,16 +67,18 @@ export const useUserInterests = () => {
         if (error) throw error;
       }
 
-      // Also seed user_preferences with initial scores
+      // Also seed user_preferences with initial scores (insert only, ignore conflicts)
       for (const interest of selectedInterests) {
         await supabase
           .from('user_preferences')
-          .upsert({
+          .insert({
             user_id: user.id,
             tag: interest.toLowerCase(),
-            score: 50, // Initial boost for selected interests
+            score: 50,
             updated_at: new Date().toISOString(),
-          }, { onConflict: 'user_id,tag' });
+          })
+          .select()
+          .maybeSingle(); // Ignore if already exists
       }
 
       setInterests(selectedInterests);

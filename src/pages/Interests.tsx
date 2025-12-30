@@ -75,9 +75,7 @@ const Interests = () => {
                     }
                   `}
                 >
-                  {isSelected && (
-                    <Check className="inline w-4 h-4 mr-1.5 -ml-1" />
-                  )}
+                  <Check className={`inline w-4 h-4 mr-1.5 -ml-1 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
                   {interest}
                 </button>
               );
