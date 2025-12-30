@@ -119,17 +119,19 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
     const currentY = e.touches[0].clientY;
     const diff = currentY - touchStartY.current;
     
-    // Only allow dragging down (positive diff)
+    // Only allow dragging down (positive diff) with resistance
     if (diff > 0) {
-      setTranslateY(diff);
+      // Add resistance - the further you drag, the harder it gets
+      const resistance = 0.5;
+      setTranslateY(diff * resistance);
     }
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
     
-    // If dragged more than 100px, close the modal
-    if (translateY > 100) {
+    // If dragged more than 80px (after resistance), close the modal
+    if (translateY > 80) {
       onClose();
     } else {
       // Snap back
@@ -193,12 +195,8 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
               </div>
             ) : (
               <div className="space-y-4">
-                {comments.map((comment, index) => (
-                  <div 
-                    key={comment.id} 
-                    className="flex gap-3 animate-fade-in"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
+                {comments.map((comment) => (
+                  <div key={comment.id} className="flex gap-3">
                     <Avatar className="w-9 h-9 flex-shrink-0">
                       <AvatarImage src={comment.avatar_url || undefined} />
                       <AvatarFallback>{comment.username[0]?.toUpperCase()}</AvatarFallback>
