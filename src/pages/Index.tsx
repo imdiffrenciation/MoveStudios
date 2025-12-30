@@ -43,16 +43,27 @@ const Index = () => {
 
   // Get personalized feed when media changes
   useEffect(() => {
+    let cancelled = false;
+
     const getPersonalized = async () => {
-      if (mediaItems.length > 0 && user) {
-        const recommended = await getRecommendedPosts(mediaItems as any);
-        setPersonalizedMedia(recommended as unknown as MediaItem[]);
-      } else {
-        setPersonalizedMedia(mediaItems);
+      try {
+        if (mediaItems.length > 0 && user) {
+          const recommended = await getRecommendedPosts(mediaItems as any);
+          if (!cancelled) setPersonalizedMedia(recommended as unknown as MediaItem[]);
+        } else {
+          if (!cancelled) setPersonalizedMedia(mediaItems);
+        }
+      } catch (e) {
+        console.error('Failed to build personalized feed', e);
+        if (!cancelled) setPersonalizedMedia(mediaItems);
       }
     };
+
     getPersonalized();
-  }, [mediaItems, user, userPreferences]);
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaItems, user, userPreferences, getRecommendedPosts]);
 
   // Memoize filtered media to prevent unnecessary recalculations
   const filteredMedia = useMemo(() => {
