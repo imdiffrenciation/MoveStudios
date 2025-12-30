@@ -1,0 +1,313 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import CreatorBadge from '@/components/CreatorBadge';
+import TikTokCommentModal from '@/components/TikTokCommentModal';
+import { useMedia } from '@/hooks/useMedia';
+import { useAuth } from '@/hooks/useAuth';
+import { useTikTokInteractions } from '@/hooks/useTikTokInteractions';
+import { useRecommendation } from '@/hooks/useRecommendation';
+import { toast } from 'sonner';
+import type { MediaItem } from '@/types';
+
+interface TikTokFeedProps {
+  onBack: () => void;
+}
+
+const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { media, loading, trackView } = useMedia();
+  const { recordInteraction, markAsSeen, getRecommendedPosts } = useRecommendation();
+  const { checkLikeStatus, checkSaveStatus, toggleLike, toggleSave, isLiked, getLikeCount, isSaved } = useTikTokInteractions();
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [feedItems, setFeedItems] = useState<MediaItem[]>([]);
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+
+  // Load recommended posts when media is available
+  useEffect(() => {
+    const loadRecommendedFeed = async () => {
+      if (media.length > 0) {
+        const recommended = await getRecommendedPosts(media as any);
+        setFeedItems(recommended as unknown as MediaItem[]);
+      }
+    };
+    loadRecommendedFeed();
+  }, [media, getRecommendedPosts]);
+
+  const currentItem = feedItems[currentIndex];
+
+  // Track view, mark as seen, and load interaction states when item changes
+  useEffect(() => {
+    if (currentItem && user) {
+      trackView(currentItem.id);
+      markAsSeen(currentItem.id);
+      checkLikeStatus(currentItem.id);
+      checkSaveStatus(currentItem.id);
+    }
+  }, [currentIndex, currentItem, user, trackView, markAsSeen, checkLikeStatus, checkSaveStatus]);
+
+  // Handle scroll to change items
+  const handleScroll = useCallback((direction: 'up' | 'down') => {
+    if (direction === 'down' && currentIndex < feedItems.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else if (direction === 'up' && currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    }
+  }, [currentIndex, feedItems.length]);
+
+  // Touch handling for swipe
+  const touchStartY = useRef(0);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndY = e.changedTouches[0].clientY;
+    const diff = touchStartY.current - touchEndY;
+    if (Math.abs(diff) > 50) {
+      handleScroll(diff > 0 ? 'down' : 'up');
+    }
+  };
+
+  // Wheel handling for desktop
+  const handleWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
+    if (Math.abs(e.deltaY) > 30) {
+      handleScroll(e.deltaY > 0 ? 'down' : 'up');
+    }
+  }, [handleScroll]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('wheel', handleWheel, { passive: false });
+      return () => container.removeEventListener('wheel', handleWheel);
+    }
+  }, [handleWheel]);
+
+  // Video control
+  useEffect(() => {
+    videoRefs.current.forEach((video, id) => {
+      if (id === currentItem?.id) {
+        if (isPaused) {
+          video.pause();
+        } else {
+          video.play().catch(() => {});
+        }
+        video.muted = isMuted;
+      } else {
+        video.pause();
+        video.currentTime = 0;
+      }
+    });
+  }, [currentIndex, currentItem, isPaused, isMuted]);
+
+  const handleLike = async () => {
+    if (!user || !currentItem) return;
+    await toggleLike(currentItem.id, currentItem.userId, currentItem.tags, recordInteraction);
+  };
+
+  const handleSave = async () => {
+    if (!user || !currentItem) return;
+    await toggleSave(currentItem.id);
+  };
+
+  const handleShare = async () => {
+    try {
+      await navigator.share({
+        title: currentItem?.title,
+        url: window.location.href,
+      });
+    } catch {
+      toast.success('Link copied!');
+    }
+  };
+
+  const handleCreatorClick = () => {
+    if (currentItem) {
+      navigate(`/profile/${currentItem.userId}`);
+    }
+  };
+
+  const togglePlayPause = () => {
+    setIsPaused(prev => !prev);
+  };
+
+  if (loading && feedItems.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (feedItems.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center z-50 p-4">
+        <p className="text-muted-foreground text-center mb-4">No content available yet</p>
+        <Button onClick={onBack}>Go Back</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      ref={containerRef}
+      className="fixed inset-0 bg-black z-50 overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="absolute top-4 left-4 z-20 text-white/80 text-sm font-medium"
+      >
+        ← Back
+      </button>
+
+      {/* Content */}
+      <div className="relative w-full h-full flex items-center justify-center">
+        {currentItem && (
+          <>
+            {/* Media */}
+            <div 
+              className="absolute inset-0 flex items-center justify-center bg-black"
+              onClick={togglePlayPause}
+            >
+              {currentItem.type === 'video' ? (
+                <video
+                  ref={el => el && videoRefs.current.set(currentItem.id, el)}
+                  src={currentItem.url}
+                  className="max-w-full max-h-full object-contain"
+                  loop
+                  playsInline
+                  muted={isMuted}
+                  autoPlay
+                />
+              ) : (
+                <img
+                  src={currentItem.url}
+                  alt={currentItem.title}
+                  className="max-w-full max-h-full object-contain"
+                />
+              )}
+
+              {/* Play/Pause overlay */}
+              {isPaused && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <Play className="w-16 h-16 text-white/80" fill="white" />
+                </div>
+              )}
+            </div>
+
+            {/* Right side actions */}
+            <div className="absolute right-3 bottom-32 flex flex-col items-center gap-5 z-10">
+              {/* Creator avatar */}
+              <button onClick={handleCreatorClick} className="relative">
+                <Avatar className="w-12 h-12 border-2 border-white">
+                  <AvatarImage src={currentItem.creatorAvatarUrl} />
+                  <AvatarFallback>{currentItem.creator[0]?.toUpperCase()}</AvatarFallback>
+                </Avatar>
+                {currentItem.hasActiveBadge && (
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
+                    <CreatorBadge size="sm" />
+                  </div>
+                )}
+              </button>
+
+              {/* Like */}
+              <button onClick={handleLike} className="flex flex-col items-center">
+                <div className={`p-2 rounded-full ${isLiked(currentItem.id) ? 'text-red-500' : 'text-white'}`}>
+                  <Heart className="w-7 h-7" fill={isLiked(currentItem.id) ? 'currentColor' : 'none'} />
+                </div>
+                <span className="text-white text-xs">{getLikeCount(currentItem.id) || currentItem.likes}</span>
+              </button>
+
+              {/* Comment */}
+              <button onClick={() => setCommentModalOpen(true)} className="flex flex-col items-center">
+                <div className="p-2 text-white">
+                  <MessageCircle className="w-7 h-7" />
+                </div>
+                <span className="text-white text-xs">Comments</span>
+              </button>
+
+              {/* Save */}
+              <button onClick={handleSave} className="flex flex-col items-center">
+                <div className={`p-2 ${isSaved(currentItem.id) ? 'text-yellow-400' : 'text-white'}`}>
+                  <Bookmark className="w-7 h-7" fill={isSaved(currentItem.id) ? 'currentColor' : 'none'} />
+                </div>
+                <span className="text-white text-xs">Save</span>
+              </button>
+
+              {/* Share */}
+              <button onClick={handleShare} className="flex flex-col items-center">
+                <div className="p-2 text-white">
+                  <Share2 className="w-7 h-7" />
+                </div>
+                <span className="text-white text-xs">Share</span>
+              </button>
+
+              {/* Volume (for videos) */}
+              {currentItem.type === 'video' && (
+                <button onClick={() => setIsMuted(!isMuted)} className="flex flex-col items-center">
+                  <div className="p-2 text-white">
+                    {isMuted ? <VolumeX className="w-7 h-7" /> : <Volume2 className="w-7 h-7" />}
+                  </div>
+                </button>
+              )}
+            </div>
+
+            {/* Bottom info */}
+            <div className="absolute left-3 right-20 bottom-8 z-10">
+              <button onClick={handleCreatorClick} className="flex items-center gap-2 mb-2">
+                <span className="text-white font-semibold">@{currentItem.creator}</span>
+                {currentItem.hasActiveBadge && <CreatorBadge size="sm" />}
+              </button>
+              <p className="text-white/90 text-sm mb-2 line-clamp-2">{currentItem.title}</p>
+              {currentItem.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {currentItem.tags.slice(0, 3).map((tag) => (
+                    <span key={tag} className="text-white/70 text-xs">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Progress indicator */}
+            <div className="absolute top-16 left-0 right-0 px-4 z-10">
+              <div className="flex gap-1">
+                {feedItems.slice(0, Math.min(10, feedItems.length)).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`h-0.5 flex-1 rounded-full ${idx <= currentIndex ? 'bg-white' : 'bg-white/30'}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Comment Modal */}
+      {currentItem && (
+        <TikTokCommentModal
+          isOpen={commentModalOpen}
+          onClose={() => setCommentModalOpen(false)}
+          mediaId={currentItem.id}
+        />
+      )}
+    </div>
+  );
+};
+
+export default TikTokFeed;

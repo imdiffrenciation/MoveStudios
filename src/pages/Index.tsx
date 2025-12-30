@@ -8,15 +8,18 @@ import TrendingTags from '@/components/TrendingTags';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import MediaModal from '@/components/MediaModal';
+import TikTokFeed from '@/components/TikTokFeed';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useMedia } from '@/hooks/useMedia';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserInterests } from '@/hooks/useUserInterests';
 import type { MediaItem } from '@/types';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { hasInterests, loading: interestsLoading } = useUserInterests();
   const { media: mediaItems, loading, trackView, loadMore, hasMore } = useMedia();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
@@ -24,7 +27,18 @@ const Index = () => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [showMobileTags, setShowMobileTags] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const [showTikTokFeed, setShowTikTokFeed] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  // Double tap detection for home button
+  const lastHomeTap = useRef<number>(0);
+
+  // Redirect to interests page if user hasn't selected any
+  useEffect(() => {
+    if (!interestsLoading && user && !hasInterests) {
+      navigate('/interests');
+    }
+  }, [hasInterests, interestsLoading, user, navigate]);
 
   // Memoize filtered media to prevent unnecessary recalculations
   const filteredMedia = useMemo(() => {
@@ -55,6 +69,19 @@ const Index = () => {
     setSelectedTag(prev => prev === tag ? undefined : tag);
   }, []);
 
+  const handleHomeDoubleTap = useCallback(() => {
+    const now = Date.now();
+    if (now - lastHomeTap.current < 300) {
+      // Double tap detected
+      setShowTikTokFeed(true);
+    }
+    lastHomeTap.current = now;
+  }, []);
+
+  const handleExploreClick = useCallback(() => {
+    setShowTikTokFeed(true);
+  }, []);
+
   // Infinite scroll observer
   useEffect(() => {
     if (!loadMoreRef.current || !hasMore || loading) return;
@@ -71,6 +98,11 @@ const Index = () => {
     observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
   }, [hasMore, loading, loadMore]);
+
+  // Show TikTok feed when active
+  if (showTikTokFeed) {
+    return <TikTokFeed onBack={() => setShowTikTokFeed(false)} />;
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -89,7 +121,7 @@ const Index = () => {
                 <Menu className="w-4 h-4" />
               </Button>
               <button 
-                onClick={() => navigate('/app')}
+                onClick={handleHomeDoubleTap}
                 className="flex items-center"
               >
                 <span className="text-sm font-pixel text-primary">MS</span>
@@ -128,8 +160,8 @@ const Index = () => {
                 <Menu className="w-5 h-5" />
               </Button>
               <button 
-                onClick={() => navigate('/app')}
-                className="flex items-center hover:opacity-80 transition-opacity"
+                onClick={handleHomeDoubleTap}
+                className="flex items-center transition-opacity"
               >
                 <span className="text-xl font-pixel text-primary">MoveStudios</span>
               </button>
@@ -229,7 +261,10 @@ const Index = () => {
       </Sheet>
 
       {/* Bottom Navigation */}
-      <DockerNav onUploadClick={() => setIsUploadModalOpen(true)} />
+      <DockerNav 
+        onUploadClick={() => setIsUploadModalOpen(true)} 
+        onExploreClick={handleExploreClick}
+      />
 
       {/* Upload Modal */}
       <UploadModal
