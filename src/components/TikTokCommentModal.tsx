@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, X } from 'lucide-react';
+import { Send, X, SlidersHorizontal } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -104,19 +103,34 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md h-[70vh] flex flex-col p-0">
-        <DialogHeader className="p-4 border-b border-border flex flex-row items-center justify-between">
-          <DialogTitle className="text-lg">
-            Comments ({comments.length})
-          </DialogTitle>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+    <div 
+      className="fixed inset-x-0 bottom-0 z-50 bg-background rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300"
+      style={{ height: '60vh' }}
+    >
+      {/* Drag handle */}
+      <div className="flex justify-center pt-3 pb-2">
+        <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
+      </div>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pb-3 border-b border-border">
+        <h2 className="text-lg font-semibold">Comments {comments.length}</h2>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <SlidersHorizontal className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
             <X className="w-5 h-5" />
           </Button>
-        </DialogHeader>
+        </div>
+      </div>
 
-        <ScrollArea className="flex-1 p-4">
+      {/* Comments list */}
+      <ScrollArea className="flex-1" style={{ height: 'calc(60vh - 120px)' }}>
+        <div className="p-4">
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -129,18 +143,18 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
             <div className="space-y-4">
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3">
-                  <Avatar className="w-8 h-8 flex-shrink-0">
+                  <Avatar className="w-9 h-9 flex-shrink-0">
                     <AvatarImage src={comment.avatar_url || undefined} />
                     <AvatarFallback>{comment.username[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{comment.username}</span>
+                      <span className="font-medium text-sm">@{comment.username}</span>
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground mt-0.5 break-words">
+                    <p className="text-sm text-foreground mt-1 break-words">
                       {comment.content}
                     </p>
                   </div>
@@ -148,28 +162,35 @@ const TikTokCommentModal = ({ isOpen, onClose, mediaId }: TikTokCommentModalProp
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
+      </ScrollArea>
 
-        {user && (
-          <div className="p-4 border-t border-border flex gap-2">
+      {/* Input area */}
+      {user && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
+          <div className="flex items-center gap-3">
+            <Avatar className="w-8 h-8 flex-shrink-0">
+              <AvatarFallback>U</AvatarFallback>
+            </Avatar>
             <Input
               placeholder="Add a comment..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()}
-              className="flex-1"
+              className="flex-1 bg-muted border-0"
             />
             <Button 
               size="icon" 
+              variant="ghost"
               onClick={handleSubmitComment}
               disabled={!newComment.trim() || submitting}
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-5 h-5" />
             </Button>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+        </div>
+      )}
+    </div>
   );
 };
 
