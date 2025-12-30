@@ -3,13 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export const useSaves = (mediaId: string, enabled: boolean = true) => {
+export const useSaves = (mediaId: string) => {
   const { user } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (mediaId && user && enabled) {
+    if (mediaId && user) {
       checkIfSaved();
 
       // Subscribe to realtime updates
@@ -33,7 +33,7 @@ export const useSaves = (mediaId: string, enabled: boolean = true) => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user, mediaId, enabled]);
+  }, [user, mediaId]);
 
   const checkIfSaved = async () => {
     if (!user) return;

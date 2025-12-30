@@ -15,14 +15,12 @@ import { useMedia } from '@/hooks/useMedia';
 import { useAuth } from '@/hooks/useAuth';
 import { useRecommendation } from '@/hooks/useRecommendation';
 import { useViewMode } from '@/hooks/useViewMode';
-import { useIsMobile } from '@/hooks/use-mobile';
 import type { MediaItem } from '@/types';
 import { cn } from '@/lib/utils';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isMobile = useIsMobile();
   const { media: mediaItems, loading, trackView, loadMore, hasMore } = useMedia();
   const { getRecommendedPosts, userPreferences } = useRecommendation();
   const { viewMode, toggleViewMode, isGridView, isTikTokView } = useViewMode();
@@ -34,36 +32,20 @@ const Index = () => {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [tiktokIndex, setTiktokIndex] = useState(0);
   const [personalizedMedia, setPersonalizedMedia] = useState<MediaItem[]>([]);
-  const [showTikTokComments, setShowTikTokComments] = useState(false);
-  const [commentingItem, setCommentingItem] = useState<MediaItem | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  // Force grid view on desktop
-  const effectiveTikTokView = isTikTokView && isMobile;
 
   // Get personalized feed when media changes
   useEffect(() => {
-    let cancelled = false;
-
     const getPersonalized = async () => {
-      try {
-        if (mediaItems.length > 0 && user) {
-          const recommended = await getRecommendedPosts(mediaItems as any);
-          if (!cancelled) setPersonalizedMedia(recommended as unknown as MediaItem[]);
-        } else {
-          if (!cancelled) setPersonalizedMedia(mediaItems);
-        }
-      } catch (e) {
-        console.error('Failed to build personalized feed', e);
-        if (!cancelled) setPersonalizedMedia(mediaItems);
+      if (mediaItems.length > 0 && user) {
+        const recommended = await getRecommendedPosts(mediaItems as any);
+        setPersonalizedMedia(recommended as unknown as MediaItem[]);
+      } else {
+        setPersonalizedMedia(mediaItems);
       }
     };
-
     getPersonalized();
-    return () => {
-      cancelled = true;
-    };
-  }, [mediaItems, user, getRecommendedPosts]);
+  }, [mediaItems, user, userPreferences]);
 
   // Memoize filtered media to prevent unnecessary recalculations
   const filteredMedia = useMemo(() => {
@@ -97,13 +79,8 @@ const Index = () => {
   }, []);
 
   const handleCommentClick = useCallback((item: MediaItem) => {
-    if (effectiveTikTokView) {
-      setCommentingItem(item);
-      setShowTikTokComments(true);
-    } else {
-      setSelectedMedia(item);
-    }
-  }, [effectiveTikTokView]);
+    setSelectedMedia(item);
+  }, []);
 
   const handleShareClick = useCallback(async (item: MediaItem) => {
     try {
@@ -118,10 +95,8 @@ const Index = () => {
     }
   }, []);
 
-  // Double tap home handler for mobile view toggle (mobile only)
+  // Double tap home handler for mobile view toggle
   useEffect(() => {
-    if (!isMobile) return;
-    
     let lastTapTime = 0;
     
     const handleDoubleTap = (e: TouchEvent) => {
@@ -141,11 +116,11 @@ const Index = () => {
 
     document.addEventListener('touchend', handleDoubleTap, { passive: false });
     return () => document.removeEventListener('touchend', handleDoubleTap);
-  }, [toggleViewMode, isMobile]);
+  }, [toggleViewMode]);
 
   // Infinite scroll observer
   useEffect(() => {
-    if (!loadMoreRef.current || !hasMore || loading || effectiveTikTokView) return;
+    if (!loadMoreRef.current || !hasMore || loading || isTikTokView) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -158,14 +133,14 @@ const Index = () => {
 
     observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
-  }, [hasMore, loading, loadMore, effectiveTikTokView]);
+  }, [hasMore, loading, loadMore, isTikTokView]);
 
-  // TikTok view - full screen (mobile only)
-  if (effectiveTikTokView) {
+  // TikTok view - full screen
+  if (isTikTokView) {
     return (
-      <div className="h-[100dvh] bg-black relative overflow-hidden">
+      <div className="h-screen bg-black relative">
         {/* Floating header */}
-        <header className="absolute top-0 left-0 right-0 z-50 p-3 flex items-center justify-between safe-area-top">
+        <header className="absolute top-0 left-0 right-0 z-50 p-3 flex items-center justify-between">
           <Button
             variant="ghost"
             size="icon"
@@ -223,24 +198,7 @@ const Index = () => {
           </SheetContent>
         </Sheet>
 
-        {/* TikTok Comments Sheet */}
-        <Sheet open={showTikTokComments} onOpenChange={setShowTikTokComments}>
-          <SheetContent side="bottom" className="h-[70vh] p-0 rounded-t-3xl">
-            <SheetHeader className="p-4 border-b border-border">
-              <SheetTitle>Comments</SheetTitle>
-            </SheetHeader>
-            <div className="p-4 overflow-y-auto h-[calc(100%-60px)]">
-              {commentingItem && (
-                <div className="text-center text-muted-foreground py-8">
-                  <p className="text-sm">Comments for this content will appear here</p>
-                  <p className="text-xs mt-2">Be the first to comment!</p>
-                </div>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-
-        {/* Media Modal - only used for grid view */}
+        {/* Media Modal */}
         <MediaModal
           media={selectedMedia}
           isOpen={!!selectedMedia}
@@ -290,16 +248,14 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-0.5">
-              {isMobile && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={toggleViewMode}
-                >
-                  <Play className="w-4 h-4" />
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={toggleViewMode}
+              >
+                <Play className="w-4 h-4" />
+              </Button>
               <ThemeToggle />
               <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate('/profile')}>
                 <User className="w-4 h-4" />
@@ -339,6 +295,31 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-1">
+              {/* View Mode Toggle */}
+              <div className="flex items-center bg-secondary rounded-full p-1 mr-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 rounded-full transition-colors",
+                    isGridView && "bg-background shadow-sm"
+                  )}
+                  onClick={() => isGridView || toggleViewMode()}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 rounded-full transition-colors",
+                    isTikTokView && "bg-background shadow-sm"
+                  )}
+                  onClick={() => isTikTokView || toggleViewMode()}
+                >
+                  <Play className="w-4 h-4" />
+                </Button>
+              </div>
               <ThemeToggle />
               <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
                 <User className="w-5 h-5" />
