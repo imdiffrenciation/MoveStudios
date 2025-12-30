@@ -2,8 +2,9 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, User, Settings, Menu } from 'lucide-react';
+import { Search, User, Settings, Menu, LayoutGrid, Play } from 'lucide-react';
 import MasonryGrid, { MasonryGridSkeleton } from '@/components/MasonryGrid';
+import TikTokView from '@/components/TikTokView';
 import TrendingTags from '@/components/TrendingTags';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
@@ -12,33 +13,55 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useMedia } from '@/hooks/useMedia';
 import { useAuth } from '@/hooks/useAuth';
+import { useRecommendation } from '@/hooks/useRecommendation';
+import { useViewMode } from '@/hooks/useViewMode';
 import type { MediaItem } from '@/types';
+import { cn } from '@/lib/utils';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { media: mediaItems, loading, trackView, loadMore, hasMore } = useMedia();
+  const { getRecommendedPosts, userPreferences } = useRecommendation();
+  const { viewMode, toggleViewMode, isGridView, isTikTokView } = useViewMode();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showMobileTags, setShowMobileTags] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const [tiktokIndex, setTiktokIndex] = useState(0);
+  const [personalizedMedia, setPersonalizedMedia] = useState<MediaItem[]>([]);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Get personalized feed when media changes
+  useEffect(() => {
+    const getPersonalized = async () => {
+      if (mediaItems.length > 0 && user) {
+        const recommended = await getRecommendedPosts(mediaItems as any);
+        setPersonalizedMedia(recommended as unknown as MediaItem[]);
+      } else {
+        setPersonalizedMedia(mediaItems);
+      }
+    };
+    getPersonalized();
+  }, [mediaItems, user, userPreferences]);
 
   // Memoize filtered media to prevent unnecessary recalculations
   const filteredMedia = useMemo(() => {
-    if (!searchQuery && !selectedTag) return mediaItems;
+    const sourceMedia = personalizedMedia.length > 0 ? personalizedMedia : mediaItems;
+    
+    if (!searchQuery && !selectedTag) return sourceMedia;
     
     const query = searchQuery.toLowerCase();
-    return mediaItems.filter(item => {
+    return sourceMedia.filter(item => {
       const matchesSearch = !searchQuery || 
         item.title.toLowerCase().includes(query) ||
         item.creator.toLowerCase().includes(query);
       const matchesTag = !selectedTag || item.tags.includes(selectedTag);
       return matchesSearch && matchesTag;
     });
-  }, [mediaItems, searchQuery, selectedTag]);
+  }, [personalizedMedia, mediaItems, searchQuery, selectedTag]);
 
   const handleUpload = useCallback(() => {
     setIsUploadModalOpen(false);
@@ -55,9 +78,49 @@ const Index = () => {
     setSelectedTag(prev => prev === tag ? undefined : tag);
   }, []);
 
+  const handleCommentClick = useCallback((item: MediaItem) => {
+    setSelectedMedia(item);
+  }, []);
+
+  const handleShareClick = useCallback(async (item: MediaItem) => {
+    try {
+      await navigator.share({
+        title: item.title,
+        text: `Check out ${item.title} on MoveStudios`,
+        url: window.location.origin + `/app?media=${item.id}`,
+      });
+    } catch {
+      // Fallback - copy to clipboard
+      await navigator.clipboard.writeText(window.location.origin + `/app?media=${item.id}`);
+    }
+  }, []);
+
+  // Double tap home handler for mobile view toggle
+  useEffect(() => {
+    let lastTapTime = 0;
+    
+    const handleDoubleTap = (e: TouchEvent) => {
+      const currentTime = Date.now();
+      const tapLength = currentTime - lastTapTime;
+      
+      // Only trigger on the main content area, not on buttons
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('a')) return;
+      
+      if (tapLength < 300 && tapLength > 0) {
+        toggleViewMode();
+        e.preventDefault();
+      }
+      lastTapTime = currentTime;
+    };
+
+    document.addEventListener('touchend', handleDoubleTap, { passive: false });
+    return () => document.removeEventListener('touchend', handleDoubleTap);
+  }, [toggleViewMode]);
+
   // Infinite scroll observer
   useEffect(() => {
-    if (!loadMoreRef.current || !hasMore || loading) return;
+    if (!loadMoreRef.current || !hasMore || loading || isTikTokView) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -70,7 +133,82 @@ const Index = () => {
 
     observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
-  }, [hasMore, loading, loadMore]);
+  }, [hasMore, loading, loadMore, isTikTokView]);
+
+  // TikTok view - full screen
+  if (isTikTokView) {
+    return (
+      <div className="h-screen bg-black relative">
+        {/* Floating header */}
+        <header className="absolute top-0 left-0 right-0 z-50 p-3 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white bg-black/20 backdrop-blur-sm"
+            onClick={() => setShowMobileTags(true)}
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+          
+          <span className="text-lg font-pixel text-white">MoveStudios</span>
+          
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white bg-black/20 backdrop-blur-sm"
+              onClick={toggleViewMode}
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white bg-black/20 backdrop-blur-sm"
+              onClick={() => navigate('/profile')}
+            >
+              <User className="w-5 h-5" />
+            </Button>
+          </div>
+        </header>
+
+        <TikTokView
+          items={filteredMedia}
+          currentIndex={tiktokIndex}
+          onIndexChange={setTiktokIndex}
+          onCommentClick={handleCommentClick}
+          onShareClick={handleShareClick}
+        />
+
+        {/* Mobile Tags Sheet */}
+        <Sheet open={showMobileTags} onOpenChange={setShowMobileTags}>
+          <SheetContent side="left" className="w-72 p-0 bg-background/95 backdrop-blur-xl">
+            <SheetHeader className="p-4 border-b border-border">
+              <SheetTitle>Trending Tags</SheetTitle>
+            </SheetHeader>
+            <div className="p-4">
+              <TrendingTags 
+                onTagSelect={(tag) => {
+                  handleTagClick(tag);
+                  setShowMobileTags(false);
+                }}
+                selectedTag={selectedTag}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Media Modal */}
+        <MediaModal
+          media={selectedMedia}
+          isOpen={!!selectedMedia}
+          onClose={() => setSelectedMedia(null)}
+          onTagClick={handleTagClick}
+          allMedia={mediaItems}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -110,6 +248,14 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={toggleViewMode}
+              >
+                <Play className="w-4 h-4" />
+              </Button>
               <ThemeToggle />
               <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate('/profile')}>
                 <User className="w-4 h-4" />
@@ -149,6 +295,31 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-1">
+              {/* View Mode Toggle */}
+              <div className="flex items-center bg-secondary rounded-full p-1 mr-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 rounded-full transition-colors",
+                    isGridView && "bg-background shadow-sm"
+                  )}
+                  onClick={() => isGridView || toggleViewMode()}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 rounded-full transition-colors",
+                    isTikTokView && "bg-background shadow-sm"
+                  )}
+                  onClick={() => isTikTokView || toggleViewMode()}
+                >
+                  <Play className="w-4 h-4" />
+                </Button>
+              </div>
               <ThemeToggle />
               <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
                 <User className="w-5 h-5" />

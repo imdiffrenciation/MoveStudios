@@ -163,11 +163,56 @@ export const useContentHash = () => {
     return result;
   }, [storeHashOnChain, markMediaAsProtected]);
 
+  // Find media by content hash in database
+  const findMediaByHash = useCallback(async (contentHash: string): Promise<{
+    found: boolean;
+    media?: {
+      id: string;
+      title: string;
+      url: string;
+      creator_id: string;
+      is_protected: boolean;
+    };
+    error?: string;
+  }> => {
+    try {
+      const { data, error } = await supabase
+        .from('media')
+        .select('id, title, url, user_id, is_protected')
+        .eq('content_hash', contentHash)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error finding media by hash:', error);
+        return { found: false, error: error.message };
+      }
+
+      if (!data) {
+        return { found: false };
+      }
+
+      return {
+        found: true,
+        media: {
+          id: data.id,
+          title: data.title,
+          url: data.url,
+          creator_id: data.user_id,
+          is_protected: data.is_protected || false,
+        },
+      };
+    } catch (error: any) {
+      console.error('Error finding media by hash:', error);
+      return { found: false, error: error.message };
+    }
+  }, []);
+
   return {
     storeHashOnChain,
     getStoredHashes,
     protectMedia,
     markMediaAsProtected,
+    findMediaByHash,
     getExplorerUrl: (hash: string) => getExplorerUrl(hash, network?.chainId),
     loading,
     connected,
