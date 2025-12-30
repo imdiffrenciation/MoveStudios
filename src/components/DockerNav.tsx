@@ -1,12 +1,12 @@
-import { Home, Plus, User, Settings } from 'lucide-react';
+import { Home, Plus, User, Settings, Play } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 
 interface DockerNavProps {
   onUploadClick: () => void;
+  onExploreClick?: () => void;
 }
 
-const DockerNav = ({ onUploadClick }: DockerNavProps) => {
+const DockerNav = ({ onUploadClick, onExploreClick }: DockerNavProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -19,10 +19,19 @@ const DockerNav = ({ onUploadClick }: DockerNavProps) => {
       active: location.pathname === '/app'
     },
     { 
+      id: 'explore', 
+      icon: Play, 
+      label: 'Explore', 
+      path: null,
+      action: 'explore',
+      active: false 
+    },
+    { 
       id: 'create', 
       icon: Plus, 
       label: 'Create', 
       path: null,
+      action: 'upload',
       active: false 
     },
     { 
@@ -44,8 +53,10 @@ const DockerNav = ({ onUploadClick }: DockerNavProps) => {
   const handleNavClick = (item: typeof navItems[0]) => {
     if (item.path) {
       navigate(item.path);
-    } else {
+    } else if (item.action === 'upload') {
       onUploadClick();
+    } else if (item.action === 'explore' && onExploreClick) {
+      onExploreClick();
     }
   };
 
