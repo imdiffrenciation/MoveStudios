@@ -59,13 +59,15 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
     }
   }, [currentIndex, feedItems.length]);
 
-  // Touch handling for swipe
+  // Touch handling for swipe - disabled when comment modal is open
   const touchStartY = useRef(0);
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (commentModalOpen) return;
     touchStartY.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    if (commentModalOpen) return;
     const touchEndY = e.changedTouches[0].clientY;
     const diff = touchStartY.current - touchEndY;
     if (Math.abs(diff) > 50) {
@@ -73,13 +75,14 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
     }
   };
 
-  // Wheel handling for desktop
+  // Wheel handling for desktop - disabled when comment modal is open
   const handleWheel = useCallback((e: WheelEvent) => {
+    if (commentModalOpen) return;
     e.preventDefault();
     if (Math.abs(e.deltaY) > 30) {
       handleScroll(e.deltaY > 0 ? 'down' : 'up');
     }
-  }, [handleScroll]);
+  }, [handleScroll, commentModalOpen]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -117,19 +120,30 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
   };
 
   const handleShare = async () => {
-    try {
-      await navigator.share({
-        title: currentItem?.title,
-        url: window.location.href,
-      });
-    } catch {
+    const shareUrl = `${window.location.origin}/app?media=${currentItem?.id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: currentItem?.title,
+          url: shareUrl,
+        });
+      } catch (err) {
+        // User cancelled or share failed - copy to clipboard instead
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Link copied!');
+      }
+    } else {
+      // Fallback for browsers without share API
+      await navigator.clipboard.writeText(shareUrl);
       toast.success('Link copied!');
     }
   };
 
   const handleCreatorClick = () => {
     if (currentItem) {
-      navigate(`/profile/${currentItem.userId}`);
+      // Pass state to indicate we came from TikTok feed
+      navigate(`/profile/${currentItem.userId}`, { state: { fromTikTok: true } });
     }
   };
 

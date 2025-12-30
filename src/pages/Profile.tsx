@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,10 +31,12 @@ interface UnprotectedMedia {
 
 const Profile = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userId } = useParams();
   const { user } = useAuth();
   const profileUserId = userId || user?.id;
   const isOwnProfile = !userId || userId === user?.id;
+  const cameFromTikTok = location.state?.fromTikTok;
   
   const { followersCount, followingCount, isFollowing: checkIsFollowing, followUser, unfollowUser } = useFollows(profileUserId);
   const { tipsSent, tipsReceived, refreshStats: refreshTipStats } = useTipStats(profileUserId);
@@ -397,7 +399,13 @@ const Profile = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (cameFromTikTok) {
+                  navigate('/app', { state: { fromTikTok: true } });
+                } else {
+                  navigate(-1);
+                }
+              }}
               className="mb-4 gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
