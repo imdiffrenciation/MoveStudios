@@ -81,11 +81,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelled) return;
+
+      // Keep callback synchronous to avoid auth deadlocks.
       setUser(session?.user ?? null);
+
       if (session?.user) {
-        await checkOnboardingStatus(session.user.id);
+        // Defer any additional backend calls.
+        window.setTimeout(() => {
+          if (cancelled) return;
+          void checkOnboardingStatus(session.user.id);
+        }, 0);
       } else {
         setOnboardingCompleted(null);
       }
