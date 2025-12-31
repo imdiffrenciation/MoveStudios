@@ -94,9 +94,10 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
         setDragOffset(targetOffset);
         
         setTimeout(() => {
-          setCurrentIndex(prev => prev + direction);
-          setDragOffset(0);
+          // Disable transition momentarily to prevent double animation
           setIsAnimating(false);
+          setDragOffset(0);
+          setCurrentIndex(prev => prev + direction);
         }, 250);
       } else {
         // Snap back at boundaries
@@ -126,9 +127,9 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
         setDragOffset(direction > 0 ? -window.innerHeight : window.innerHeight);
         
         setTimeout(() => {
-          setCurrentIndex(prev => prev + direction);
-          setDragOffset(0);
           setIsAnimating(false);
+          setDragOffset(0);
+          setCurrentIndex(prev => prev + direction);
         }, 250);
       }
       
@@ -246,7 +247,7 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
             className="absolute inset-0 flex items-center justify-center bg-black"
             style={{ 
               transform: `translateY(calc(-100% + ${dragOffset}px))`,
-              transition: isDragging.current ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+              transition: isDragging.current || (!isAnimating && dragOffset === 0) ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
             }}
           >
             {prevItem.type === 'video' ? (
@@ -263,7 +264,7 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
             className="absolute inset-0 flex items-center justify-center bg-black"
             style={{ 
               transform: `translateY(${dragOffset}px)`,
-              transition: isDragging.current ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+              transition: isDragging.current || (!isAnimating && dragOffset === 0) ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
             }}
             onClick={togglePlayPause}
           >
@@ -300,7 +301,7 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
             className="absolute inset-0 flex items-center justify-center bg-black"
             style={{ 
               transform: `translateY(calc(100% + ${dragOffset}px))`,
-              transition: isDragging.current ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+              transition: isDragging.current || (!isAnimating && dragOffset === 0) ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
             }}
           >
             {nextItem.type === 'video' ? (
