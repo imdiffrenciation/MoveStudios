@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { useUserInterests } from '@/hooks/useUserInterests';
 import { toast } from 'sonner';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, ArrowLeft } from 'lucide-react';
 
 const Interests = () => {
   const navigate = useNavigate();
@@ -44,61 +43,80 @@ const Interests = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="p-6 pt-12 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-6">
-          <Sparkles className="w-8 h-8 text-primary" />
+      <div className="relative px-4 pt-4 pb-3">
+        <button 
+          onClick={handleSkip}
+          className="absolute left-4 top-4 p-2 rounded-full hover:bg-secondary transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        
+        {/* Progress bar */}
+        <div className="flex justify-center mb-6">
+          <div className="w-16 h-1 bg-destructive rounded-full" />
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-          What do you love?
+        
+        <h1 className="text-2xl md:text-3xl font-medium text-center">
+          Pick the content that{' '}
+          <span className="font-heading font-bold italic">MOVE</span>{' '}
+          you
         </h1>
-        <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto">
-          Select at least 3 interests to personalize your feed
-        </p>
       </div>
 
-      {/* Interests Grid */}
-      <div className="flex-1 px-4 md:px-8 py-6 overflow-y-auto">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex flex-wrap gap-3 justify-center">
-            {availableInterests.map((interest) => {
-              const isSelected = selected.includes(interest);
-              return (
-                <button
-                  key={interest}
-                  onClick={() => toggleInterest(interest)}
-                  className={`
-                    relative px-5 py-2.5 rounded-full text-sm font-medium
-                    transition-all duration-200 border-2
-                    ${isSelected 
-                      ? 'bg-primary text-primary-foreground border-primary' 
-                      : 'bg-secondary/50 text-foreground border-transparent'
-                    }
-                  `}
-                >
-                  <Check className={`inline w-4 h-4 mr-1.5 -ml-1 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
-                  {interest}
-                </button>
-              );
-            })}
-          </div>
+      {/* Grid of interests */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-3 max-w-3xl mx-auto">
+          {availableInterests.map((interest) => {
+            const isSelected = selected.includes(interest.name);
+            return (
+              <button
+                key={interest.name}
+                onClick={() => toggleInterest(interest.name)}
+                className="flex flex-col items-start text-left group"
+              >
+                <div className="relative w-full aspect-square rounded-2xl overflow-hidden mb-2">
+                  <img
+                    src={interest.image}
+                    alt={interest.name}
+                    className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                  />
+                  {/* Selection overlay */}
+                  <div 
+                    className={`absolute inset-0 transition-all duration-200 ${
+                      isSelected 
+                        ? 'bg-primary/40 ring-4 ring-primary ring-inset' 
+                        : 'bg-transparent group-hover:bg-black/10'
+                    }`}
+                  />
+                  {/* Checkmark */}
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                  )}
+                </div>
+                <span className="text-sm font-medium leading-tight line-clamp-2">
+                  {interest.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Footer */}
-      <div className="p-6 border-t border-border bg-background/80 backdrop-blur-lg">
-        <div className="max-w-md mx-auto space-y-3">
-          <Button 
+      <div className="p-4 border-t border-border bg-background">
+        <div className="max-w-3xl mx-auto">
+          <button
             onClick={handleContinue}
             disabled={selected.length < 3 || saving}
-            className="w-full h-12 text-base"
+            className={`w-full py-3.5 rounded-full text-base font-medium transition-all ${
+              selected.length >= 3
+                ? 'bg-primary text-primary-foreground hover:opacity-90'
+                : 'bg-muted text-muted-foreground cursor-not-allowed'
+            }`}
           >
-            {saving ? 'Saving...' : `Continue (${selected.length}/3 minimum)`}
-          </Button>
-          <button
-            onClick={handleSkip}
-            className="w-full text-center text-sm text-muted-foreground"
-          >
-            Skip for now
+            {saving ? 'Saving...' : `Pick ${Math.max(0, 3 - selected.length)} or more to continue`}
           </button>
         </div>
       </div>
