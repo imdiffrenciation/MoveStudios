@@ -56,20 +56,20 @@ const InterestsModal = ({ open, onClose }: InterestsModalProps) => {
             <ArrowLeft className="w-5 h-5" />
           </button>
           
-          {/* Progress bar */}
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-1 bg-destructive rounded-full" />
-          </div>
-          
-          <h1 className="text-2xl md:text-3xl font-medium text-center">
-            Pick the content that{' '}
-            <span className="font-heading font-bold italic">MOVE</span>{' '}
-            you
-          </h1>
+        {/* Progress bar */}
+        <div className="flex justify-center mb-6">
+          <div className="w-16 h-1 bg-destructive rounded-full" />
         </div>
+        
+        <h1 className="text-2xl md:text-3xl font-medium text-center">
+          Pick the content that{' '}
+          <span className="font-pixel text-primary text-lg md:text-xl">MOVE</span>{' '}
+          you
+        </h1>
+      </div>
 
-        {/* Grid of interests */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+      {/* Grid of interests */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-hide">
           <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
             {availableInterests.map((interest) => {
               const isSelected = selected.includes(interest.name);
