@@ -2,13 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
+import gamesImage from '@/assets/games-interest.jpg';
+import bakingImage from '@/assets/baking-interest.jpg';
+
 const AVAILABLE_INTERESTS = [
   { name: 'Plants', image: 'https://images.unsplash.com/photo-1459411552884-841db9b3cc2a?w=300&h=300&fit=crop' },
   { name: 'Party ideas', image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=300&h=300&fit=crop' },
   { name: 'Cute animals', image: 'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?w=300&h=300&fit=crop' },
   { name: 'Tattoos', image: 'https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?w=300&h=300&fit=crop' },
   { name: 'Cars', image: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&h=300&fit=crop' },
-  { name: 'Games', image: 'https://images.unsplash.com/photo-1493711662062-fa541f7f3d24?w=300&h=300&fit=crop' },
+  { name: 'Games', image: gamesImage },
   { name: 'Home decor', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=300&fit=crop' },
   { name: 'Quotes', image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=300&h=300&fit=crop' },
   { name: 'Makeup', image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=300&fit=crop' },
@@ -22,9 +25,12 @@ const AVAILABLE_INTERESTS = [
   { name: 'Anime and comics', image: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=300&h=300&fit=crop' },
   { name: 'Photography', image: 'https://images.unsplash.com/photo-1452780212940-6f5c0d14d848?w=300&h=300&fit=crop' },
   { name: 'Outfit ideas', image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=300&h=300&fit=crop' },
-  { name: 'Baking', image: 'https://images.unsplash.com/photo-1486427944544-d2c6dcdace6d?w=300&h=300&fit=crop' },
+  { name: 'Baking', image: bakingImage },
   { name: 'Memes', image: 'https://images.unsplash.com/photo-1531259683007-016a7b628fc3?w=300&h=300&fit=crop' },
   { name: 'Dance', image: 'https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=300&h=300&fit=crop' },
+  { name: 'Music', image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&h=300&fit=crop' },
+  { name: 'Pets', image: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=300&h=300&fit=crop' },
+  { name: 'Food', image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=300&fit=crop' },
 ];
 
 export const useUserInterests = () => {
