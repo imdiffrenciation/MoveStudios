@@ -9,9 +9,11 @@ import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import MediaModal from '@/components/MediaModal';
 import TikTokFeed from '@/components/TikTokFeed';
+import InterestsModal from '@/components/InterestsModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useRecommendedFeed } from '@/hooks/useRecommendedFeed';
+import { useUserInterests } from '@/hooks/useUserInterests';
 import { useAuth } from '@/hooks/useAuth';
 
 import type { MediaItem } from '@/types';
@@ -20,8 +22,9 @@ const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { hasInterests, loading: interestsLoading } = useUserInterests();
   
-  const { media: mediaItems, loading, trackView, loadMore, hasMore, feedSource } = useRecommendedFeed();
+  const { media: mediaItems, loading, trackView, loadMore, hasMore, feedSource, refetch } = useRecommendedFeed();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -29,6 +32,7 @@ const Index = () => {
   const [showMobileTags, setShowMobileTags] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [showTikTokFeed, setShowTikTokFeed] = useState(false);
+  const [showInterestsModal, setShowInterestsModal] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   
   // Double tap detection for home button
@@ -43,7 +47,18 @@ const Index = () => {
     }
   }, [location.state]);
 
-  // Memoize filtered media to prevent unnecessary recalculations
+  // Show interests modal for new users without interests
+  useEffect(() => {
+    if (!interestsLoading && !hasInterests && user) {
+      setShowInterestsModal(true);
+    }
+  }, [interestsLoading, hasInterests, user]);
+
+  const handleInterestsClose = useCallback(() => {
+    setShowInterestsModal(false);
+    // Refetch feed after interests are saved
+    refetch();
+  }, [refetch]);
   const filteredMedia = useMemo(() => {
     if (!searchQuery && !selectedTag) return mediaItems;
     
@@ -283,6 +298,12 @@ const Index = () => {
         onClose={() => setSelectedMedia(null)}
         onTagClick={handleTagClick}
         allMedia={mediaItems}
+      />
+
+      {/* Interests Modal for new users */}
+      <InterestsModal
+        open={showInterestsModal}
+        onClose={handleInterestsClose}
       />
     </div>
   );
