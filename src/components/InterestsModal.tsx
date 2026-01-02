@@ -58,7 +58,7 @@ const InterestsModal = ({ open, onClose }: InterestsModalProps) => {
           
         {/* Progress bar */}
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-1 bg-destructive rounded-full" />
+          <div className="w-16 h-1 bg-primary rounded-full" />
         </div>
         
         <h1 className="text-2xl md:text-3xl font-medium text-center">
