@@ -14,6 +14,8 @@ export interface MediaItem {
   contentHash?: string;
   userId?: string;
   engagementScore?: number;
+  viralScore?: number;
+  qualityScore?: number;
 }
 
 export interface TrendingTag {

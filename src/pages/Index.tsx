@@ -11,7 +11,7 @@ import MediaModal from '@/components/MediaModal';
 import TikTokFeed from '@/components/TikTokFeed';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { useMedia } from '@/hooks/useMedia';
+import { useRecommendedFeed } from '@/hooks/useRecommendedFeed';
 import { useAuth } from '@/hooks/useAuth';
 
 import type { MediaItem } from '@/types';
@@ -21,7 +21,7 @@ const Index = () => {
   const location = useLocation();
   const { user } = useAuth();
   
-  const { media: mediaItems, loading, trackView, loadMore, hasMore } = useMedia();
+  const { media: mediaItems, loading, trackView, loadMore, hasMore, feedSource } = useRecommendedFeed();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
