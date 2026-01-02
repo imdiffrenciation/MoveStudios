@@ -5,10 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import CreatorBadge from '@/components/CreatorBadge';
 import TikTokCommentModal from '@/components/TikTokCommentModal';
-import { useMedia } from '@/hooks/useMedia';
 import { useAuth } from '@/hooks/useAuth';
 import { useTikTokInteractions } from '@/hooks/useTikTokInteractions';
 import { useRecommendation } from '@/hooks/useRecommendation';
+import { useRecommendedFeed } from '@/hooks/useRecommendedFeed';
 import { toast } from 'sonner';
 import type { MediaItem } from '@/types';
 
@@ -19,7 +19,7 @@ interface TikTokFeedProps {
 const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { media, loading, trackView } = useMedia();
+  const { media, loading, trackView } = useRecommendedFeed();
   const { recordInteraction, markAsSeen } = useRecommendation();
   const { checkLikeStatus, checkSaveStatus, toggleLike, toggleSave, isLiked, getLikeCount, isSaved } = useTikTokInteractions();
 
@@ -34,12 +34,9 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
   const touchStartY = useRef(0);
   const isDragging = useRef(false);
 
-  // Use media directly - shuffled for variety
+  // Use recommended media directly - already personalized
   const feedItems = useMemo(() => {
-    if (media.length === 0) return [];
-    // Simple shuffle for variety
-    const shuffled = [...media].sort(() => Math.random() - 0.5);
-    return shuffled;
+    return media;
   }, [media]);
 
   const currentItem = feedItems[currentIndex];

@@ -71,18 +71,29 @@ export const useUserInterests = () => {
         if (error) throw error;
       }
 
-      // Also seed user_preferences with initial scores (insert only, ignore conflicts)
+      // Seed user_preferences with initial scores for the algorithm
+      // Using a higher initial score (100) to give interests strong weight
       for (const interest of selectedInterests) {
-        await supabase
+        const normalizedInterest = interest.toLowerCase();
+        
+        // Check if preference already exists
+        const { data: existing } = await supabase
           .from('user_preferences')
-          .insert({
-            user_id: user.id,
-            tag: interest.toLowerCase(),
-            score: 50,
-            updated_at: new Date().toISOString(),
-          })
-          .select()
-          .maybeSingle(); // Ignore if already exists
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('tag', normalizedInterest)
+          .maybeSingle();
+        
+        if (!existing) {
+          await supabase
+            .from('user_preferences')
+            .insert({
+              user_id: user.id,
+              tag: normalizedInterest,
+              score: 100, // Strong initial weight for selected interests
+              updated_at: new Date().toISOString(),
+            });
+        }
       }
 
       setInterests(selectedInterests);
