@@ -83,17 +83,9 @@ const InterestsModal = ({ open, onClose }: InterestsModalProps) => {
                     <img
                       src={interest.image}
                       alt={interest.name}
-                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      className="w-full h-full object-cover"
                     />
-                    {/* Selection overlay */}
-                    <div 
-                      className={`absolute inset-0 transition-all duration-200 ${
-                        isSelected 
-                          ? 'bg-primary/40 ring-4 ring-primary ring-inset' 
-                          : 'bg-transparent group-hover:bg-black/10'
-                      }`}
-                    />
-                    {/* Checkmark */}
+                    {/* Checkmark only */}
                     {isSelected && (
                       <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
                         <Check className="w-4 h-4 text-primary-foreground" />
@@ -120,7 +112,7 @@ const InterestsModal = ({ open, onClose }: InterestsModalProps) => {
                 : 'bg-muted text-muted-foreground cursor-not-allowed'
             }`}
           >
-            {saving ? 'Saving...' : `Pick ${Math.max(0, 3 - selected.length)} or more to continue`}
+            {saving ? 'Saving...' : selected.length >= 3 ? 'Continue' : `Pick ${3 - selected.length} more to continue`}
           </button>
         </div>
       </DialogContent>
