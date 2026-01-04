@@ -185,6 +185,7 @@ export type Database = {
           is_protected: boolean | null
           likes_count: number | null
           quality_score: number | null
+          recommendation_score: number | null
           tags: string[] | null
           title: string
           type: string
@@ -203,6 +204,7 @@ export type Database = {
           is_protected?: boolean | null
           likes_count?: number | null
           quality_score?: number | null
+          recommendation_score?: number | null
           tags?: string[] | null
           title: string
           type: string
@@ -221,6 +223,7 @@ export type Database = {
           is_protected?: boolean | null
           likes_count?: number | null
           quality_score?: number | null
+          recommendation_score?: number | null
           tags?: string[] | null
           title?: string
           type?: string
@@ -417,7 +420,34 @@ export type Database = {
     }
     Functions: {
       deactivate_expired_badges: { Args: never; Returns: undefined }
+      get_recommended_posts: {
+        Args: { p_limit?: number; p_offset?: number; p_user_id: string }
+        Returns: {
+          comments_count: number
+          content_hash: string
+          created_at: string
+          creator_avatar_url: string
+          creator_has_badge: boolean
+          creator_username: string
+          creator_wallet_address: string
+          description: string
+          engagement_score: number
+          id: string
+          is_protected: boolean
+          likes_count: number
+          quality_score: number
+          recommendation_score: number
+          tags: string[]
+          title: string
+          type: string
+          url: string
+          user_id: string
+          views_count: number
+          viral_score: number
+        }[]
+      }
       increment_view_count: { Args: { media_id: string }; Returns: undefined }
+      update_recommendation_scores: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
