@@ -47,10 +47,14 @@ const Index = () => {
     }
   }, [location.state]);
 
-  // Show interests modal for new users without interests
+  // Show interests modal for new users without interests (only once per session)
   useEffect(() => {
     if (!interestsLoading && !hasInterests && user) {
-      setShowInterestsModal(true);
+      const hasSeenModal = sessionStorage.getItem('hasSeenInterestsModal');
+      if (!hasSeenModal) {
+        setShowInterestsModal(true);
+        sessionStorage.setItem('hasSeenInterestsModal', 'true');
+      }
     }
   }, [interestsLoading, hasInterests, user]);
 
