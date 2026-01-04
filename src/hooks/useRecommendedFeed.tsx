@@ -1,74 +1,41 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { getRecommendedFeed, getMoreRecommendedPosts, RecommendationResult } from '@/lib/recommendation/recommendationService';
 import type { MediaItem } from '@/types';
 
-const PAGE_SIZE = 20;
-
-interface ProfileMap {
-  [key: string]: {
-    username: string;
-    avatar_url: string | null;
-    wallet_address: string | null;
-    has_active_badge: boolean | null;
-  };
-}
+const PAGE_SIZE = 40;
 
 export const useRecommendedFeed = () => {
   const { user } = useAuth();
   const [media, setMedia] = useState<MediaItem[]>([]);
-  const [allMedia, setAllMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
-  const [feedSource, setFeedSource] = useState<RecommendationResult['source']>('trending');
-  const profilesCache = useRef<ProfileMap>({});
   const fetchingRef = useRef(false);
   const offsetRef = useRef(0);
 
-  // Fetch profiles in batch and cache them
-  const fetchProfiles = useCallback(async (userIds: string[]) => {
-    const uncachedIds = userIds.filter(id => !profilesCache.current[id]);
-    
-    if (uncachedIds.length > 0) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url, wallet_address, has_active_badge')
-        .in('id', uncachedIds);
-      
-      data?.forEach(p => {
-        profilesCache.current[p.id] = p;
+  // Fetch recommended posts using the optimized database function
+  const fetchRecommendedPosts = useCallback(async (offset: number = 0): Promise<MediaItem[]> => {
+    try {
+      const { data, error } = await supabase.rpc('get_recommended_posts', {
+        p_user_id: user?.id || '',
+        p_limit: PAGE_SIZE,
+        p_offset: offset
       });
-    }
-    
-    return profilesCache.current;
-  }, []);
 
-  // Fetch all media from database
-  const fetchAllMedia = useCallback(async (): Promise<MediaItem[]> => {
-    const { data: mediaData, error } = await supabase
-      .from('media')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(500); // Reasonable limit for recommendation pool
+      if (error) {
+        console.error('Error fetching recommended posts:', error);
+        return [];
+      }
 
-    if (error || !mediaData) return [];
-
-    // Fetch profiles for these media items
-    const userIds = [...new Set(mediaData.map(m => m.user_id))];
-    const profiles = await fetchProfiles(userIds);
-
-    return mediaData.map(item => {
-      const profile = profiles[item.user_id];
-      return {
+      return (data || []).map((item: any) => ({
         id: item.id,
         type: item.type as 'image' | 'video',
         url: item.url,
         title: item.title,
-        creator: profile?.username || 'Unknown',
-        creatorWalletAddress: profile?.wallet_address || undefined,
-        creatorAvatarUrl: profile?.avatar_url || undefined,
-        hasActiveBadge: profile?.has_active_badge || false,
+        creator: item.creator_username || 'Unknown',
+        creatorAvatarUrl: item.creator_avatar_url || undefined,
+        creatorWalletAddress: item.creator_wallet_address || undefined,
+        hasActiveBadge: item.creator_has_badge || false,
         tags: item.tags || [],
         likes: item.likes_count || 0,
         taps: item.views_count || 0,
@@ -78,59 +45,40 @@ export const useRecommendedFeed = () => {
         engagementScore: item.engagement_score || 0,
         viralScore: item.viral_score || 0,
         qualityScore: item.quality_score || 0,
-      };
-    });
-  }, [fetchProfiles]);
+      }));
+    } catch (error) {
+      console.error('Error in fetchRecommendedPosts:', error);
+      return [];
+    }
+  }, [user?.id]);
 
-  // Initial load with recommendations
+  // Initial load
   const loadRecommendedFeed = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     setLoading(true);
 
     try {
-      // Fetch all media first
-      const allMediaItems = await fetchAllMedia();
-      setAllMedia(allMediaItems);
-
-      if (allMediaItems.length === 0) {
-        setMedia([]);
-        setHasMore(false);
-        return;
-      }
-
-      // Get personalized recommendations
-      const result = await getRecommendedFeed(user?.id, allMediaItems, {
-        shuffle: false,
-        limit: PAGE_SIZE * 2, // Load 2 pages initially
-      });
-
-      setMedia(result.items);
-      setFeedSource(result.source);
-      setHasMore(allMediaItems.length > result.items.length);
-      offsetRef.current = result.items.length;
+      const posts = await fetchRecommendedPosts(0);
+      setMedia(posts);
+      setHasMore(posts.length === PAGE_SIZE);
+      offsetRef.current = posts.length;
     } catch (error) {
       console.error('Error loading recommended feed:', error);
     } finally {
       setLoading(false);
       fetchingRef.current = false;
     }
-  }, [user?.id, fetchAllMedia]);
+  }, [fetchRecommendedPosts]);
 
   // Load more for infinite scroll
   const loadMore = useCallback(async () => {
-    if (!hasMore || fetchingRef.current || !user) return;
+    if (!hasMore || fetchingRef.current) return;
     fetchingRef.current = true;
 
     try {
-      const morePosts = await getMoreRecommendedPosts(
-        user.id,
-        media,
-        allMedia,
-        offsetRef.current,
-        PAGE_SIZE
-      );
-
+      const morePosts = await fetchRecommendedPosts(offsetRef.current);
+      
       if (morePosts.length < PAGE_SIZE) {
         setHasMore(false);
       }
@@ -144,40 +92,42 @@ export const useRecommendedFeed = () => {
     } finally {
       fetchingRef.current = false;
     }
-  }, [hasMore, user, media, allMedia]);
+  }, [hasMore, fetchRecommendedPosts]);
 
-  // Track view
-  const trackView = useCallback(async (mediaId: string) => {
+  // Fire-and-forget view tracking (doesn't block UI)
+  const trackView = useCallback((mediaId: string) => {
     if (!user) return;
-    
-    try {
-      // Check if already viewed
-      const { data: existingView } = await supabase
-        .from('seen_posts')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('media_id', mediaId)
-        .maybeSingle();
 
-      if (!existingView) {
-        // Increment view count
-        await supabase.rpc('increment_view_count', { media_id: mediaId });
-        
-        // Mark as seen
-        await supabase.from('seen_posts').upsert({
-          user_id: user.id,
-          media_id: mediaId,
-          seen_at: new Date().toISOString(),
-        }, { onConflict: 'user_id,media_id' });
+    // Optimistically update local state immediately
+    setMedia(prev => prev.map(m =>
+      m.id === mediaId ? { ...m, taps: m.taps + 1 } : m
+    ));
 
-        // Update local state
-        setMedia(prev => prev.map(m => 
-          m.id === mediaId ? { ...m, taps: m.taps + 1 } : m
-        ));
+    // Fire and forget - don't await
+    (async () => {
+      try {
+        const { data: existingView } = await supabase
+          .from('seen_posts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('media_id', mediaId)
+          .maybeSingle();
+
+        if (!existingView) {
+          // Run both in parallel for speed
+          await Promise.all([
+            supabase.rpc('increment_view_count', { media_id: mediaId }),
+            supabase.from('seen_posts').upsert({
+              user_id: user.id,
+              media_id: mediaId,
+              seen_at: new Date().toISOString(),
+            }, { onConflict: 'user_id,media_id' })
+          ]);
+        }
+      } catch (error) {
+        console.error('Error tracking view:', error);
       }
-    } catch (error) {
-      console.error('Error tracking view:', error);
-    }
+    })();
   }, [user]);
 
   // Initial fetch
@@ -185,7 +135,7 @@ export const useRecommendedFeed = () => {
     loadRecommendedFeed();
   }, [user?.id]);
 
-  // Real-time subscription for new media
+  // Smarter real-time updates - prepend new items instead of full refresh
   useEffect(() => {
     const channel = supabase
       .channel('media-inserts-recommended')
@@ -196,9 +146,38 @@ export const useRecommendedFeed = () => {
           schema: 'public',
           table: 'media',
         },
-        () => {
-          // Refresh from start when new media is added
-          loadRecommendedFeed();
+        async (payload) => {
+          const newMedia = payload.new as any;
+
+          // Fetch profile for the new media
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username, avatar_url, wallet_address, has_active_badge')
+            .eq('id', newMedia.user_id)
+            .single();
+
+          const formattedItem: MediaItem = {
+            id: newMedia.id,
+            type: newMedia.type as 'image' | 'video',
+            url: newMedia.url,
+            title: newMedia.title,
+            creator: profile?.username || 'Unknown',
+            creatorAvatarUrl: profile?.avatar_url || undefined,
+            creatorWalletAddress: profile?.wallet_address || undefined,
+            hasActiveBadge: profile?.has_active_badge || false,
+            tags: newMedia.tags || [],
+            likes: newMedia.likes_count || 0,
+            taps: newMedia.views_count || 0,
+            contentHash: newMedia.content_hash || undefined,
+            timestamp: newMedia.created_at,
+            userId: newMedia.user_id,
+            engagementScore: newMedia.engagement_score || 0,
+            viralScore: newMedia.viral_score || 0,
+            qualityScore: newMedia.quality_score || 0,
+          };
+
+          // Prepend to feed instead of full refresh
+          setMedia(prev => [formattedItem, ...prev]);
         }
       )
       .subscribe();
@@ -206,15 +185,15 @@ export const useRecommendedFeed = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadRecommendedFeed]);
+  }, []);
 
-  return { 
-    media, 
-    loading, 
-    refetch: loadRecommendedFeed, 
+  return {
+    media,
+    loading,
+    refetch: loadRecommendedFeed,
     trackView,
     loadMore,
     hasMore,
-    feedSource,
+    feedSource: 'personalized' as const,
   };
 };

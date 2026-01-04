@@ -1,1 +1,4 @@
 project_id = "bvgvxvudppxkwqtxunom"
+
+[functions.update-recommendation-scores]
+verify_jwt = false
