@@ -145,6 +145,39 @@ export type Database = {
         }
         Relationships: []
       }
+      leaderboard_history: {
+        Row: {
+          badge_awarded: boolean
+          created_at: string
+          id: string
+          period_end: string
+          period_start: string
+          rank: number | null
+          total_points: number
+          user_id: string
+        }
+        Insert: {
+          badge_awarded?: boolean
+          created_at?: string
+          id?: string
+          period_end: string
+          period_start: string
+          rank?: number | null
+          total_points?: number
+          user_id: string
+        }
+        Update: {
+          badge_awarded?: boolean
+          created_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          rank?: number | null
+          total_points?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       likes: {
         Row: {
           created_at: string
@@ -181,9 +214,14 @@ export type Database = {
           created_at: string
           description: string | null
           engagement_score: number | null
+          fingerprint: string | null
           id: string
+          is_flagged_stolen: boolean | null
           is_protected: boolean | null
           likes_count: number | null
+          moderation_reason: string | null
+          moderation_status: string | null
+          original_media_id: string | null
           quality_score: number | null
           recommendation_score: number | null
           tags: string[] | null
@@ -200,9 +238,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           engagement_score?: number | null
+          fingerprint?: string | null
           id?: string
+          is_flagged_stolen?: boolean | null
           is_protected?: boolean | null
           likes_count?: number | null
+          moderation_reason?: string | null
+          moderation_status?: string | null
+          original_media_id?: string | null
           quality_score?: number | null
           recommendation_score?: number | null
           tags?: string[] | null
@@ -219,9 +262,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           engagement_score?: number | null
+          fingerprint?: string | null
           id?: string
+          is_flagged_stolen?: boolean | null
           is_protected?: boolean | null
           likes_count?: number | null
+          moderation_reason?: string | null
+          moderation_status?: string | null
+          original_media_id?: string | null
           quality_score?: number | null
           recommendation_score?: number | null
           tags?: string[] | null
@@ -232,7 +280,15 @@ export type Database = {
           views_count?: number | null
           viral_score?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "media_original_media_id_fkey"
+            columns: ["original_media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -333,6 +389,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      streak_stats: {
+        Row: {
+          created_at: string
+          current_streak: number
+          engagement_points: number
+          id: string
+          last_upload_date: string | null
+          longest_streak: number
+          total_points: number
+          total_uploads: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          engagement_points?: number
+          id?: string
+          last_upload_date?: string | null
+          longest_streak?: number
+          total_points?: number
+          total_uploads?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          engagement_points?: number
+          id?: string
+          last_upload_date?: string | null
+          longest_streak?: number
+          total_points?: number
+          total_uploads?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_interactions: {
         Row: {

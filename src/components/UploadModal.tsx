@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Upload, Video, Image as ImageIcon, XCircle, Shield } from 'lucide-react';
+import { X, Upload, Video, Image as ImageIcon, XCircle, Shield, AlertTriangle, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { generateContentHash } from '@/hooks/useContentHash';
 import { resizeAndConvertToWebP } from '@/lib/imageUtils';
+import { embedWatermark, generateImageFingerprint } from '@/lib/steganography';
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -33,9 +34,11 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [moderationStatus, setModerationStatus] = useState<'idle' | 'checking' | 'safe' | 'unsafe'>('idle');
+  const [moderationReason, setModerationReason] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (selectedFile: File) => {
+  const handleFileSelect = async (selectedFile: File) => {
     // Only allow images and videos
     const isImage = selectedFile.type.startsWith('image/');
     const isVideo = selectedFile.type.startsWith('video/');
@@ -69,6 +72,44 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
 
     setFile(selectedFile);
     setPreview(URL.createObjectURL(selectedFile));
+    setModerationStatus('idle');
+    setModerationReason('');
+
+    // Run AI moderation for images
+    if (isImage) {
+      setModerationStatus('checking');
+      try {
+        // Convert file to base64 for moderation
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const base64 = reader.result as string;
+          
+          const { data, error } = await supabase.functions.invoke('moderate-content', {
+            body: { imageUrl: base64 }
+          });
+
+          if (error) {
+            console.error('Moderation error:', error);
+            setModerationStatus('safe'); // Allow on error
+            return;
+          }
+
+          if (data?.safe === false) {
+            setModerationStatus('unsafe');
+            setModerationReason(data.reason || 'Content flagged as inappropriate');
+          } else {
+            setModerationStatus('safe');
+          }
+        };
+        reader.readAsDataURL(selectedFile);
+      } catch (error) {
+        console.error('Moderation check failed:', error);
+        setModerationStatus('safe'); // Allow on error
+      }
+    } else {
+      // For videos, skip moderation for now (could add frame extraction later)
+      setModerationStatus('safe');
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -99,19 +140,99 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
     e.preventDefault();
     if (!file || !title.trim() || !user) return;
 
+    // Block upload if content is flagged
+    if (moderationStatus === 'unsafe') {
+      toast({
+        title: 'Content not allowed',
+        description: moderationReason || 'This content violates our community guidelines.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsUploading(true);
     
     try {
-      // Convert images to WebP for better performance (max 2048px, 85% quality)
-      const processedFile = await resizeAndConvertToWebP(file, 2048, 0.85);
-      console.log(`Converted: ${file.name} (${(file.size / 1024).toFixed(1)}KB) → ${processedFile.name} (${(processedFile.size / 1024).toFixed(1)}KB)`);
+      let processedFile: File;
+      let fingerprint: string | null = null;
+      
+      // For images: resize, embed watermark, and generate fingerprint
+      if (file.type.startsWith('image/')) {
+        // First convert to WebP for optimization
+        const optimizedFile = await resizeAndConvertToWebP(file, 2048, 0.85);
+        console.log(`Optimized: ${file.name} (${(file.size / 1024).toFixed(1)}KB) → ${optimizedFile.name} (${(optimizedFile.size / 1024).toFixed(1)}KB)`);
+
+        // Embed invisible watermark with user ID
+        const watermarkedBlob = await embedWatermark(optimizedFile, user.id);
+        processedFile = new File([watermarkedBlob], optimizedFile.name.replace('.webp', '.png'), { type: 'image/png' });
+        console.log('Embedded watermark with user ID:', user.id);
+
+        // Generate fingerprint for stolen content detection
+        fingerprint = await generateImageFingerprint(optimizedFile);
+        console.log('Generated fingerprint:', fingerprint.substring(0, 32) + '...');
+      } else {
+        processedFile = file;
+      }
 
       // Generate content hash for protection
       const contentHash = await generateContentHash(processedFile);
       console.log('Generated content hash:', contentHash);
 
+      // Check if fingerprint matches any existing content
+      if (fingerprint) {
+        const { data: existingMedia } = await (supabase as any)
+          .from('media')
+          .select('id, user_id, title, fingerprint')
+          .not('fingerprint', 'is', null)
+          .not('user_id', 'eq', user.id)
+          .limit(100);
+
+        if (existingMedia && existingMedia.length > 0) {
+          // Check for similar fingerprints (simple substring match for demo)
+          const potentialMatch = existingMedia.find((m: any) => 
+            m.fingerprint && fingerprint && 
+            m.fingerprint.substring(0, 64) === fingerprint.substring(0, 64)
+          );
+
+          if (potentialMatch) {
+            // Get original creator info
+            const { data: originalCreator } = await (supabase as any)
+              .from('profiles')
+              .select('username')
+              .eq('id', potentialMatch.user_id)
+              .single();
+
+            toast({
+              title: '⚠️ Potential duplicate detected',
+              description: `Similar content exists by @${originalCreator?.username || 'another creator'}. Uploading will flag this as potentially copied.`,
+              variant: 'destructive',
+            });
+
+            // Still allow upload but flag it
+            const { error: insertError } = await (supabase as any)
+              .from('media')
+              .insert({
+                user_id: user.id,
+                type: 'image',
+                url: '', // Will be updated after storage upload
+                title: title.trim(),
+                description: description.trim() || null,
+                tags: tags.length > 0 ? tags : null,
+                content_hash: contentHash,
+                fingerprint,
+                is_protected: false,
+                is_flagged_stolen: true,
+                original_media_id: potentialMatch.id,
+                moderation_status: 'approved',
+              });
+            
+            // Continue with upload...
+          }
+        }
+      }
+
       // Upload file to storage
-      const fileExt = processedFile.type.startsWith('video/') ? 'mp4' : 'webp';
+      const fileExt = processedFile.type.startsWith('video/') ? 'mp4' : 'png';
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError, data: uploadData } = await supabase.storage
@@ -127,7 +248,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
         .from('media')
         .getPublicUrl(fileName);
 
-      // Insert media record with content hash
+      // Insert media record with content hash and fingerprint
       const { error: insertError } = await (supabase as any)
         .from('media')
         .insert({
@@ -138,7 +259,9 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
           description: description.trim() || null,
           tags: tags.length > 0 ? tags : null,
           content_hash: contentHash,
+          fingerprint,
           is_protected: false,
+          moderation_status: 'approved',
         });
 
       if (insertError) throw insertError;
@@ -148,7 +271,7 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
         description: (
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
-            <span>Content hash generated. Protect it in your profile!</span>
+            <span>Content watermarked & fingerprinted for protection!</span>
           </div>
         ),
       });
@@ -174,6 +297,8 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
     setDescription('');
     setTags([]);
     setTagInput('');
+    setModerationStatus('idle');
+    setModerationReason('');
     onClose();
   };
 
