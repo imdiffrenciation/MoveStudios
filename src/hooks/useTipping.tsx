@@ -3,8 +3,8 @@ import { useWallet } from '@aptos-labs/wallet-adapter-react';
 import { Aptos, AptosConfig, Network } from '@aptos-labs/ts-sdk';
 import { supabase } from '@/integrations/supabase/client';
 
-// Contract configuration - using hello_blockchain module name from your Move contract
-const CONTRACT_ADDRESS = '0xa82655afd873cdf5e35d2dfa6ab6def067c3b5407ba3f61d32dc41b91ed66955';
+// Contract configuration - Updated after Movement testnet reset
+const CONTRACT_ADDRESS = '0x4e334666646f631c5782e5c03f4c2c7c9b417f54213268ff646a830ee21ee230';
 const MODULE_NAME = 'tipping';
 
 // Movement network configurations - CORRECT URLs
