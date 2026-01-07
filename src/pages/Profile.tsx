@@ -5,8 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Grid, Heart, Bookmark, ArrowLeft, Shield, AlertCircle, Gift, Camera, Award } from 'lucide-react';
+import { Settings, Grid, Heart, Bookmark, ArrowLeft, Shield, AlertCircle, Gift, Camera, Award, Trophy } from 'lucide-react';
 import MasonryGrid from '@/components/MasonryGrid';
+import MentionText from '@/components/MentionText';
 import DockerNav from '@/components/DockerNav';
 import UploadModal from '@/components/UploadModal';
 import MediaModal from '@/components/MediaModal';
@@ -516,7 +517,11 @@ const Profile = () => {
               </div>
 
               <p className="text-sm sm:text-base text-foreground">
-                {profile?.bio || 'No bio yet'}
+                {profile?.bio ? (
+                  <MentionText text={profile.bio} />
+                ) : (
+                  'No bio yet'
+                )}
               </p>
             </div>
           </div>

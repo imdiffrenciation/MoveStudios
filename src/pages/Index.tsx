@@ -12,6 +12,7 @@ import TikTokFeed from '@/components/TikTokFeed';
 import InterestsModal from '@/components/InterestsModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import StreakLeaderboard from '@/components/StreakLeaderboard';
 import { useRecommendedFeed } from '@/hooks/useRecommendedFeed';
 import { useUserInterests } from '@/hooks/useUserInterests';
 import { useAuth } from '@/hooks/useAuth';
@@ -217,10 +218,10 @@ const Index = () => {
 
       {/* Main Content */}
       <div className="px-3 md:px-6 py-4 flex gap-6">
-        {/* Sidebar */}
+        {/* Left Sidebar - Trending Tags */}
         {showSidebar && (
           <aside className="hidden lg:block w-56 flex-shrink-0">
-            <div className="sticky top-20">
+            <div className="sticky top-20 space-y-4">
               <TrendingTags 
                 onTagSelect={handleTagClick}
                 selectedTag={selectedTag}
@@ -229,7 +230,7 @@ const Index = () => {
           </aside>
         )}
 
-        {/* Feed */}
+        {/* Main Feed */}
         <main className="flex-1 min-w-0">
           {loading && mediaItems.length === 0 ? (
             <MasonryGridSkeleton count={12} />
@@ -262,6 +263,14 @@ const Index = () => {
             </>
           )}
         </main>
+
+        {/* Right Sidebar - Leaderboard (only on xl screens) */}
+        <aside className="hidden xl:block w-72 flex-shrink-0">
+          <div className="sticky top-20">
+            <StreakLeaderboard />
+          </div>
+        </aside>
+
       </div>
 
       {/* Mobile Trending Tags Sheet */}
