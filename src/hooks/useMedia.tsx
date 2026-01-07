@@ -90,6 +90,8 @@ export const useMedia = () => {
           timestamp: item.created_at,
           userId: item.user_id,
           engagementScore: item.engagement_score || 0,
+          isFlaggedStolen: item.is_flagged_stolen || false,
+          originalMediaId: item.original_media_id || undefined,
         };
       });
 
