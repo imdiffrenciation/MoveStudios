@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import TipModal from './TipModal';
 import CreatorBadge from './CreatorBadge';
+import MentionText from './MentionText';
 
 interface MediaModalProps {
   media: MediaItem | null;
@@ -543,7 +544,9 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                                 {new Date(comment.created_at).toLocaleDateString()}
                               </span>
                             </div>
-                            <p className="text-sm text-foreground/90 mt-0.5">{comment.content}</p>
+                            <p className="text-sm text-foreground/90 mt-0.5">
+                              <MentionText text={comment.content} />
+                            </p>
                           </div>
                         </div>
                       ))

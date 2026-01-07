@@ -17,7 +17,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { generateContentHash } from '@/hooks/useContentHash';
 import { resizeAndConvertToWebP } from '@/lib/imageUtils';
-import { embedWatermark, generateImageFingerprint } from '@/lib/steganography';
+import { embedWatermark, generateImageFingerprint, extractWatermark, checkForStolenContent } from '@/lib/steganography';
+
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -178,56 +179,81 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
       const contentHash = await generateContentHash(processedFile);
       console.log('Generated content hash:', contentHash);
 
-      // Check if fingerprint matches any existing content
+      // Check for stolen content using watermark extraction + fingerprint similarity
+      let isStolenContent = false;
+      let originalCreatorUsername: string | null = null;
+      let originalMediaId: string | null = null;
+
       if (fingerprint) {
-        const { data: existingMedia } = await (supabase as any)
-          .from('media')
-          .select('id, user_id, title, fingerprint')
-          .not('fingerprint', 'is', null)
-          .not('user_id', 'eq', user.id)
-          .limit(100);
+        // First, try to extract watermark from the uploaded file (detects direct copies)
+        const watermarkData = await extractWatermark(URL.createObjectURL(processedFile));
+        
+        if (watermarkData && watermarkData.userId !== user.id) {
+          // This image has a watermark from another user!
+          const { data: originalCreator } = await (supabase as any)
+            .from('profiles')
+            .select('username')
+            .eq('id', watermarkData.userId)
+            .single();
 
-        if (existingMedia && existingMedia.length > 0) {
-          // Check for similar fingerprints (simple substring match for demo)
-          const potentialMatch = existingMedia.find((m: any) => 
-            m.fingerprint && fingerprint && 
-            m.fingerprint.substring(0, 64) === fingerprint.substring(0, 64)
-          );
+          isStolenContent = true;
+          originalCreatorUsername = originalCreator?.username || 'another creator';
+          
+          // Find the original media
+          const { data: originalMedia } = await (supabase as any)
+            .from('media')
+            .select('id')
+            .eq('user_id', watermarkData.userId)
+            .limit(1)
+            .maybeSingle();
+          
+          originalMediaId = originalMedia?.id || null;
+        }
 
-          if (potentialMatch) {
-            // Get original creator info
-            const { data: originalCreator } = await (supabase as any)
-              .from('profiles')
-              .select('username')
-              .eq('id', potentialMatch.user_id)
-              .single();
+        // Also check fingerprint similarity for edited/screenshot copies
+        if (!isStolenContent) {
+          const { data: existingMedia } = await (supabase as any)
+            .from('media')
+            .select('id, user_id, fingerprint')
+            .not('fingerprint', 'is', null)
+            .not('user_id', 'eq', user.id)
+            .limit(200);
 
-            toast({
-              title: '⚠️ Potential duplicate detected',
-              description: `Similar content exists by @${originalCreator?.username || 'another creator'}. Uploading will flag this as potentially copied.`,
-              variant: 'destructive',
-            });
+          if (existingMedia && existingMedia.length > 0) {
+            const stolenCheck = await checkForStolenContent(
+              fingerprint,
+              existingMedia,
+              user.id,
+              85 // 85% similarity threshold
+            );
 
-            // Still allow upload but flag it
-            const { error: insertError } = await (supabase as any)
-              .from('media')
-              .insert({
-                user_id: user.id,
-                type: 'image',
-                url: '', // Will be updated after storage upload
-                title: title.trim(),
-                description: description.trim() || null,
-                tags: tags.length > 0 ? tags : null,
-                content_hash: contentHash,
-                fingerprint,
-                is_protected: false,
-                is_flagged_stolen: true,
-                original_media_id: potentialMatch.id,
-                moderation_status: 'approved',
-              });
-            
-            // Continue with upload...
+            if (stolenCheck.isStolen && stolenCheck.originalUserId) {
+              const { data: originalCreator } = await (supabase as any)
+                .from('profiles')
+                .select('username')
+                .eq('id', stolenCheck.originalUserId)
+                .single();
+
+              isStolenContent = true;
+              originalCreatorUsername = originalCreator?.username || 'another creator';
+              originalMediaId = stolenCheck.originalId || null;
+
+              console.log(`Detected stolen content: ${stolenCheck.similarity}% similar to original`);
+            }
           }
+        }
+
+        if (isStolenContent) {
+          toast({
+            title: '⚠️ Content theft detected',
+            description: (
+              <span>
+                This content appears to belong to <strong>@{originalCreatorUsername}</strong>. 
+                Uploading will flag this as copied content.
+              </span>
+            ),
+            variant: 'destructive',
+          });
         }
       }
 
@@ -261,6 +287,8 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
           content_hash: contentHash,
           fingerprint,
           is_protected: false,
+          is_flagged_stolen: isStolenContent,
+          original_media_id: originalMediaId,
           moderation_status: 'approved',
         });
 

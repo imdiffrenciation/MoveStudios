@@ -265,14 +265,82 @@ export async function generateImageFingerprint(imageFile: File): Promise<string>
 
 /**
  * Compare two fingerprints and return similarity percentage (0-100).
+ * Uses Hamming distance on the binary representation.
  */
 export function compareFingerprints(fp1: string, fp2: string): number {
-  if (fp1.length !== fp2.length) return 0;
+  if (!fp1 || !fp2) return 0;
+  
+  // Convert hex to binary for bit-level comparison
+  const bin1 = hexToBinary(fp1);
+  const bin2 = hexToBinary(fp2);
+  
+  const minLen = Math.min(bin1.length, bin2.length);
+  if (minLen === 0) return 0;
   
   let matches = 0;
-  for (let i = 0; i < fp1.length; i++) {
-    if (fp1[i] === fp2[i]) matches++;
+  for (let i = 0; i < minLen; i++) {
+    if (bin1[i] === bin2[i]) matches++;
   }
   
-  return Math.round((matches / fp1.length) * 100);
+  return Math.round((matches / minLen) * 100);
+}
+
+/**
+ * Convert hex string to binary string
+ */
+function hexToBinary(hex: string): string {
+  let binary = '';
+  for (let i = 0; i < hex.length; i++) {
+    const nibble = parseInt(hex[i], 16);
+    if (!isNaN(nibble)) {
+      binary += nibble.toString(2).padStart(4, '0');
+    }
+  }
+  return binary;
+}
+
+/**
+ * Check if an uploaded file might be stolen based on fingerprint similarity.
+ * Returns the most similar existing media if similarity is above threshold.
+ */
+export async function checkForStolenContent(
+  fingerprint: string,
+  existingFingerprints: { id: string; fingerprint: string; user_id: string }[],
+  currentUserId: string,
+  similarityThreshold: number = 85 // 85% similarity = likely the same image
+): Promise<{ isStolen: boolean; originalId?: string; originalUserId?: string; similarity?: number }> {
+  if (!fingerprint || existingFingerprints.length === 0) {
+    return { isStolen: false };
+  }
+
+  let bestMatch: { id: string; user_id: string; similarity: number } | null = null;
+
+  for (const existing of existingFingerprints) {
+    // Skip own content
+    if (existing.user_id === currentUserId) continue;
+    if (!existing.fingerprint) continue;
+
+    const similarity = compareFingerprints(fingerprint, existing.fingerprint);
+    
+    if (similarity >= similarityThreshold) {
+      if (!bestMatch || similarity > bestMatch.similarity) {
+        bestMatch = {
+          id: existing.id,
+          user_id: existing.user_id,
+          similarity,
+        };
+      }
+    }
+  }
+
+  if (bestMatch) {
+    return {
+      isStolen: true,
+      originalId: bestMatch.id,
+      originalUserId: bestMatch.user_id,
+      similarity: bestMatch.similarity,
+    };
+  }
+
+  return { isStolen: false };
 }
