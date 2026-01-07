@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX, AlertTriangle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import CreatorBadge from '@/components/CreatorBadge';
@@ -11,6 +11,7 @@ import { useRecommendation } from '@/hooks/useRecommendation';
 import { useRecommendedFeed } from '@/hooks/useRecommendedFeed';
 import { toast } from 'sonner';
 import type { MediaItem } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TikTokFeedProps {
   onBack: () => void;
@@ -29,6 +30,7 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
   const [isMuted, setIsMuted] = useState(true);
   const [dragOffset, setDragOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [originalCreatorUsername, setOriginalCreatorUsername] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const touchStartY = useRef(0);
@@ -52,6 +54,33 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
       checkSaveStatus(currentItem.id);
     }
   }, [currentIndex, currentItem?.id, user]);
+
+  // Fetch original creator username when viewing flagged content
+  useEffect(() => {
+    const fetchOriginalCreator = async () => {
+      if (currentItem?.isFlaggedStolen && currentItem?.originalMediaId) {
+        const { data: originalMedia } = await supabase
+          .from('media')
+          .select('user_id')
+          .eq('id', currentItem.originalMediaId)
+          .single();
+
+        if (originalMedia?.user_id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', originalMedia.user_id)
+            .single();
+          
+          setOriginalCreatorUsername(profile?.username || null);
+        }
+      } else {
+        setOriginalCreatorUsername(null);
+      }
+    };
+
+    fetchOriginalCreator();
+  }, [currentItem?.id, currentItem?.isFlaggedStolen, currentItem?.originalMediaId]);
 
   // Touch handling for native swipe feel
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -365,6 +394,37 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
                 </div>
               </button>
             )}
+          </div>
+        )}
+
+        {/* Copied content banner */}
+        {currentItem?.isFlaggedStolen && originalCreatorUsername && (
+          <div className="absolute top-16 left-3 right-3 z-20">
+            <div className="bg-yellow-500/90 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-black flex-shrink-0" />
+              <p className="text-black text-xs font-medium">
+                Copied content • Original by{' '}
+                <button 
+                  onClick={() => {
+                    if (currentItem.originalMediaId) {
+                      supabase
+                        .from('media')
+                        .select('user_id')
+                        .eq('id', currentItem.originalMediaId)
+                        .single()
+                        .then(({ data }) => {
+                          if (data?.user_id) {
+                            navigate(`/profile/${data.user_id}`);
+                          }
+                        });
+                    }
+                  }}
+                  className="underline font-bold"
+                >
+                  @{originalCreatorUsername}
+                </button>
+              </p>
+            </div>
           </div>
         )}
 
