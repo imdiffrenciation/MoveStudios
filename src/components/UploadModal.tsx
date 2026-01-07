@@ -245,15 +245,17 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
 
         if (isStolenContent) {
           toast({
-            title: '⚠️ Content theft detected',
+            title: '🚫 Upload blocked - Content theft detected',
             description: (
               <span>
-                This content appears to belong to <strong>@{originalCreatorUsername}</strong>. 
-                Uploading will flag this as copied content.
+                This content belongs to <strong>@{originalCreatorUsername}</strong>. 
+                You cannot upload content created by others.
               </span>
             ),
             variant: 'destructive',
           });
+          setIsUploading(false);
+          return; // Block the upload entirely
         }
       }
 
@@ -287,8 +289,8 @@ const UploadModal = ({ isOpen, onClose, onUpload }: UploadModalProps) => {
           content_hash: contentHash,
           fingerprint,
           is_protected: false,
-          is_flagged_stolen: isStolenContent,
-          original_media_id: originalMediaId,
+          is_flagged_stolen: false,
+          original_media_id: null,
           moderation_status: 'approved',
         });
 

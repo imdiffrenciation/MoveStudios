@@ -16,6 +16,9 @@ export interface MediaItem {
   engagementScore?: number;
   viralScore?: number;
   qualityScore?: number;
+  isFlaggedStolen?: boolean;
+  originalMediaId?: string;
+  originalCreatorUsername?: string;
 }
 
 export interface TrendingTag {
