@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from 'react';
-import { Heart, Eye, Play } from 'lucide-react';
+import { Heart, Eye, Play, Copy } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isImageCached, queuePreload } from '@/hooks/useImagePreloader';
 import type { MediaItem } from '@/types';
@@ -69,6 +69,14 @@ const MediaCard = memo(({
     >
       {/* Media Container */}
       <div className="relative overflow-hidden rounded-2xl bg-secondary">
+        {/* Copied Content Badge */}
+        {item.isFlaggedStolen && (
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-destructive/90 text-destructive-foreground text-[10px] font-medium px-2 py-1 rounded-full">
+            <Copy className="w-3 h-3" />
+            Copied
+          </div>
+        )}
+        
         {item.type === 'image' ? (
           <div className="relative">
             {/* Skeleton placeholder - shown until image loads */}
@@ -144,6 +152,7 @@ const MediaCard = memo(({
   return prevProps.item.id === nextProps.item.id &&
          prevProps.item.likes === nextProps.item.likes &&
          prevProps.item.taps === nextProps.item.taps &&
+         prevProps.item.isFlaggedStolen === nextProps.item.isFlaggedStolen &&
          prevProps.shouldPreload === nextProps.shouldPreload;
 });
 

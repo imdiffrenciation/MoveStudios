@@ -45,6 +45,8 @@ export const useRecommendedFeed = () => {
         engagementScore: item.engagement_score || 0,
         viralScore: item.viral_score || 0,
         qualityScore: item.quality_score || 0,
+        isFlaggedStolen: item.is_flagged_stolen || false,
+        originalMediaId: item.original_media_id || undefined,
       }));
     } catch (error) {
       console.error('Error in fetchRecommendedPosts:', error);
@@ -174,6 +176,8 @@ export const useRecommendedFeed = () => {
             engagementScore: newMedia.engagement_score || 0,
             viralScore: newMedia.viral_score || 0,
             qualityScore: newMedia.quality_score || 0,
+            isFlaggedStolen: newMedia.is_flagged_stolen || false,
+            originalMediaId: newMedia.original_media_id || undefined,
           };
 
           // Prepend to feed instead of full refresh

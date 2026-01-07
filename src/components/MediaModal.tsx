@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Heart, MessageCircle, Share2, X, DollarSign, ChevronDown, Bookmark, Shield, Loader2, Eye } from 'lucide-react';
+import { Heart, MessageCircle, Share2, X, DollarSign, ChevronDown, Bookmark, Shield, Loader2, Eye, Copy } from 'lucide-react';
 import type { MediaItem } from '@/types';
 import { useLikes } from '@/hooks/useLikes';
 import { useSaves } from '@/hooks/useSaves';
@@ -49,6 +49,7 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
   const [showTipModal, setShowTipModal] = useState(false);
   const [isProtected, setIsProtected] = useState(false);
   const [protectLoading, setProtectLoading] = useState(false);
+  const [originalCreatorUsername, setOriginalCreatorUsername] = useState<string | null>(null);
 
   // Update currentMedia when media prop changes
   useEffect(() => {
@@ -136,6 +137,34 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
     
     checkProtection();
   }, [currentMedia?.id]);
+
+  // Fetch original creator username if content is flagged as stolen
+  useEffect(() => {
+    const fetchOriginalCreator = async () => {
+      if (!currentMedia?.isFlaggedStolen || !currentMedia?.originalMediaId) {
+        setOriginalCreatorUsername(null);
+        return;
+      }
+      
+      const { data: originalMedia } = await (supabase as any)
+        .from('media')
+        .select('user_id')
+        .eq('id', currentMedia.originalMediaId)
+        .single();
+      
+      if (originalMedia?.user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', originalMedia.user_id)
+          .single();
+        
+        setOriginalCreatorUsername(profile?.username || null);
+      }
+    };
+    
+    fetchOriginalCreator();
+  }, [currentMedia?.id, currentMedia?.isFlaggedStolen, currentMedia?.originalMediaId]);
 
   // Track interaction for recommendation algorithm
   const trackInteraction = useCallback((type: 'like' | 'comment' | 'tip' | 'profile_check') => {
@@ -388,6 +417,41 @@ const MediaModal = ({ media, isOpen, onClose, onTagClick, allMedia = [] }: Media
                   )}
                 </div>
               </div>
+
+              {/* Copied Content Warning */}
+              {currentMedia.isFlaggedStolen && (
+                <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 text-destructive px-3 py-2 rounded-lg text-sm">
+                  <Copy className="w-4 h-4 flex-shrink-0" />
+                  <span>
+                    This content was copied from{' '}
+                    {originalCreatorUsername ? (
+                      <button 
+                        onClick={() => {
+                          // Find original creator's user ID from original media
+                          if (currentMedia.originalMediaId) {
+                            (async () => {
+                              const { data } = await (supabase as any)
+                                .from('media')
+                                .select('user_id')
+                                .eq('id', currentMedia.originalMediaId)
+                                .single();
+                              if (data?.user_id) {
+                                navigate(`/profile/${data.user_id}`);
+                                onClose();
+                              }
+                            })();
+                          }
+                        }}
+                        className="font-semibold underline hover:no-underline"
+                      >
+                        @{originalCreatorUsername}
+                      </button>
+                    ) : (
+                      <span className="font-semibold">another creator</span>
+                    )}
+                  </span>
+                </div>
+              )}
 
               {/* Title */}
               <h2 className="text-xl md:text-2xl font-bold text-foreground leading-tight">{currentMedia.title}</h2>
