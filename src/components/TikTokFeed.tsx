@@ -36,9 +36,9 @@ const TikTokFeed = ({ onBack }: TikTokFeedProps) => {
   const touchStartY = useRef(0);
   const isDragging = useRef(false);
 
-  // Use recommended media directly - already personalized
+  // Filter to only show videos in the explore feed
   const feedItems = useMemo(() => {
-    return media;
+    return media.filter(item => item.type === 'video');
   }, [media]);
 
   const currentItem = feedItems[currentIndex];
