@@ -514,6 +514,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_engagement_points: {
+        Args: { p_creator_id: string; p_interaction_type: string }
+        Returns: undefined
+      }
       deactivate_expired_badges: { Args: never; Returns: undefined }
       get_recommended_posts: {
         Args: { p_limit?: number; p_offset?: number; p_user_id: string }
